@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHH-ELF.EXE :: Reading Revolution Terminal</title>
+    <meta name="description" content="A Book Talk Tool to Spark Reading Through Curiosity and Connection">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-green: #00ff00;
+            --dark-green: #008000;
+            --bg-black: #000000;
+            --bg-dark: #111111;
+            --white: #ffffff;
+            --gray: #333333;
+            --light-gray: #666666;
+            --pixel-size: 2px;
+        }
+        
+        body {
+            font-family: 'VT323', 'Courier New', monospace;
+            background: var(--bg-black);
+            color: var(--primary-green);
+            line-height: 1.4;
+            font-size: 18px;
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
+        
+        /* Scanlines Effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                transparent 50%,
+                rgba(0, 255, 0, 0.03) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        
+        /* CRT Flicker */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            98% { opacity: 0.98; }
+            99% { opacity: 1; }
+        }
+        
+        body {
+            animation: flicker 3s infinite;
+        }
+        
+        /* Header Terminal */
+        .terminal-header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--bg-black);
+            border-bottom: 2px solid var(--primary-green);
+            padding: 8px 16px;
+            z-index: 100;
+            font-size: 14px;
+        }
+        
+        .terminal-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .terminal-title {
+            color: var(--primary-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .terminal-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .control-btn {
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--primary-green);
+            background: transparent;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .control-btn:hover {
+            background: var(--primary-green);
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-top: 40px;
+            padding: 20px;
+        }
+        
+        /* ASCII Art Header */
+        .ascii-header {
+            text-align: center;
+            font-size: 12px;
+            line-height: 1;
+            margin: 20px 0;
+            white-space: pre;
+            color: var(--primary-green);
+        }
+        
+        /* Command Prompt Style */
+        .cmd-line {
+            color: var(--primary-green);
+            margin: 10px 0;
+            font-family: 'VT323', monospace;
+        }
+        
+        .cmd-prompt {
+            color: var(--dark-green);
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 40px 20px;
+            text-align: center;
+            border: 2px solid var(--primary-green);
+            margin: 20px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 0, 0.05) 2px,
+                rgba(0, 255, 0, 0.05) 4px
+            );
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0px var(--dark-green);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 5px var(--primary-green); }
+            to { text-shadow: 0 0 20px var(--primary-green), 0 0 30px var(--primary-green); }
+        }
+        
+        .tagline {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            color: var(--white);
+            animation: typewriter 3s steps(40);
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid var(--primary-green);
+        }
+        
+        @keyframes typewriter {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        
+        .hero-description {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            color: var(--white);
+        }
+        
+        /* Pixel Button */
+        .pixel-btn {
+            background: var(--bg-black);
+            color: var(--primary-green);
+            border: 3px solid var(--primary-green);
+            padding: 12px 24px;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            box-shadow: 4px 4px 0px var(--dark-green);
+        }
+        
+        .pixel-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--dark-green);
+        }
+        
+        .pixel-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
+        }
+        
+        /* Terminal Quote */
+        .terminal-quote {
+            margin: 40px 20px;
+            padding: 20px;
+            border: 2px solid var(--light-gray);
+            background: var(--bg-dark);
+            font-style: italic;
+            text-align: center;
+            position: relative;
+        }
+        
+        .terminal-quote::before {
+            content: "QUOTE.TXT";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: var(--bg-black);
+            color: var(--light-gray);
+            padding: 0 8px;
+            font-size: 12px;
+        }
+        
+        /* Features Grid */
+        .features-section {
+            padding: 40px 20px;
+        }
+        
+        .section-header {
+            text-align: center;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 40px;
+            color: var(--white);
+            border-bottom: 2px solid var(--primary-green);
+            padding-bottom: 10px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .feature-window {
+            border: 2px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 20px;
+            position: relative;
+        }
+        
+        .window-header {
+            background: var(--primary-green);
+            color: var(--bg-black);
+            padding: 8px;
+            margin: -20px -20px 20px -20px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .feature-content {
+            color: var(--white);
+            line-height: 1.6;
+        }
+        
+        /* Playground Section */
+        .playground {
+            margin: 40px 20px;
+            border: 3px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 30px;
+        }
+        
+        .playground-header {
+            text-align: center;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: var(--primary-green);
+        }
+        
+        .playground-desc {
+            text-align: center;
+            color: var(--white);
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+        
+        /* Form Styling */
+        .terminal-form {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            color: var(--primary-green);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--light-gray);
+            color: var(--white);
+            padding: 12px;
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-green);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+            color: var(--light-gray);
+        }
+        
+        /* Loading Animation */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            border: 2px solid var(--primary-green);
+            background: var(--bg-dark);
+            margin: 20px 0;
+        }
+        
+        .loading-text {
+            color: var(--primary-green);
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .loading-bar {
+            width: 100%;
+            height: 20px;
+            border: 2px solid var(--primary-green);
+            background: var(--bg-black);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .loading-fill {
+            height: 100%;
+            background: var(--primary-green);
+            width: 0%;
+            animation: loading-progress 3s ease-in-out infinite;
+        }
+        
+        @keyframes loading-progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+        
+        /* Result Section */
+        .result {
+            display: none;
+            margin-top: 30px;
+            border: 2px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 20px;
+        }
+        
+        .result-header {
+            color: var(--primary-green);
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .audio-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .audio-player {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+        }
+        
+        .share-container {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid var(--light-gray);
+            background: var(--bg-black);
+        }
+        
+        .share-url {
+            width: 100%;
+            background: var(--bg-dark);
+            color: var(--white);
+            border: 1px solid var(--light-gray);
+            padding: 10px;
+            font-family: 'VT323', monospace;
+            margin-bottom: 10px;
+        }
+        
+        /* Language Switcher */
+        .lang-switch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        
+        .lang-switch:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+        
+        /* Error Message */
+        .error-msg {
+            display: none;
+            background: var(--bg-black);
+            border: 2px solid #ff0000;
+            color: #ff0000;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+                letter-spacing: 2px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-content {
+                padding: 10px;
+            }
+            
+            .ascii-header {
+                font-size: 8px;
+            }
+        }
+        
+        /* Matrix Rain Effect (Optional) */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Terminal Header -->
+    <div class="terminal-header">
+        <div class="terminal-bar">
+            <span class="terminal-title">SHH-ELF.EXE - READING REVOLUTION TERMINAL</span>
+            <div class="terminal-controls">
+                <div class="control-btn"></div>
+                <div class="control-btn"></div>
+                <div class="control-btn"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matrix Background -->
+    <canvas class="matrix-bg" id="matrix"></canvas>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- ASCII Art Header -->
+        <div class="ascii-header">
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║          ███████╗██╗  ██╗██╗  ██╗      ███████╗██╗     ███████╗            ║
+║          ██╔════╝██║  ██║██║  ██║      ██╔════╝██║     ██╔════╝            ║
+║          ███████╗███████║███████║█████╗█████╗  ██║     █████╗              ║
+║          ╚════██║██╔══██║██╔══██║╚════╝██╔══╝  ██║     ██╔══╝              ║
+║          ███████║██║  ██║██║  ██║      ███████╗███████╗██║                 ║
+║          ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝      ╚══════╝╚══════╝╚═╝                 ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+        </div>
+
+        <!-- Command Line Style Intro -->
+        <div class="cmd-line">
+            <span class="cmd-prompt">C:\READING\REVOLUTION></span> INITIALIZING_BOOK_DISCOVERY_PROTOCOL...
+        </div>
+        <div class="cmd-line">
+            <span class="cmd-prompt">C:\READING\REVOLUTION></span> LOADING_CURIOSITY_ENGINE...
+        </div>
+        <div class="cmd-line">
+            <span class="cmd-prompt">C:\READING\REVOLUTION></span> STATUS: READY_FOR_STORY_TRANSMISSION
+        </div>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>SHH-ELF</h1>
+            <div class="tagline">SHH... A STORY'S ABOUT TO BEGIN.</div>
+            <div class="hero-description">
+                TRANSFORM READING INTO A CURIOUS, SOCIAL, AND EMOTIONALLY ENGAGING 
+                EXPERIENCE THROUGH BITE-SIZED BOOK TALKS AND PERSONALIZED RECOMMENDATIONS.
+            </div>
+            <a href="#playground" class="pixel-btn">INITIATE READING SEQUENCE</a>
+        </section>
+
+        <!-- Terminal Quote -->
+        <div class="terminal-quote">
+            "FINDING BOOKS IS HARD... IT TAKES ME A LONG TIME TO FINISH THE FIRST CHAPTER AND 
+            I'M NOT EVEN SURE IF I LIKE IT."<br>
+            <strong>— TEEN INTERVIEWEE DATABASE ENTRY #001</strong>
+        </div>
+
+        <!-- Features Section -->
+        <section class="features-section">
+            <h2 class="section-header">SYSTEM MODULES</h2>
+            
+            <div class="features-grid">
+                <div class="feature-window">
+                    <div class="window-header">BOOK_TALK_GALLERY.EXE</div>
+                    <div class="feature-content">
+                        Short audio clips to spark interest. Designed for curious or reluctant readers. 
+                        EMOTION-FIRST! Not summary-first. Bypassing traditional recommendation algorithms.
+                    </div>
+                </div>
+                
+                <div class="feature-window">
+                    <div class="window-header">BOOK_TALK_PLAYGROUND.EXE</div>
+                    <div class="feature-content">
+                        Students upload a few lines about someone they want to recommend a book to. 
+                        AI transforms it into a podcast-style voice memo—natural, emotional, shareable.
+                    </div>
+                </div>
+                
+                <div class="feature-window">
+                    <div class="window-header">SOCIAL_DISCOVERY.EXE</div>
+                    <div class="feature-content">
+                        People read more when they're curious. Reading sticks when it leads to conversation. 
+                        Peer recommendations matter more than generic algorithmic lists.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Book Talk Playground -->
+        <section id="playground" class="playground">
+            <div class="playground-header">BOOK TALK PLAYGROUND</div>
+            <div class="playground-desc">
+                CREATE A PERSONALIZED BOOK RECOMMENDATION FOR SOMEONE SPECIAL. 
+                OUR AI WILL TURN YOUR THOUGHTS INTO A NATURAL, EMOTIONAL VOICE MEMO.
+            </div>
+            
+            <div class="terminal-form">
+                <!-- Error Message -->
+                <div class="error-msg" id="errorMessage">
+                    <span id="errorText">SYSTEM ERROR: PLEASE TRY AGAIN</span>
+                </div>
+                
+                <form id="recommendationForm">
+                    <div class="form-group">
+                        <label for="book_title" class="form-label" id="label-book">BOOK TITLE</label>
+                        <input type="text" id="book_title" name="book_title" class="form-input" required 
+                               placeholder="e.g., The Seven Husbands of Evelyn Hugo">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="recipient_name" class="form-label" id="label-recipient">RECOMMEND TO</label>
+                        <input type="text" id="recipient_name" name="recipient_name" class="form-input" required 
+                               placeholder="e.g., Sarah, my book-loving friend">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="relationship" class="form-label" id="label-relationship">RELATIONSHIP</label>
+                        <select id="relationship" name="relationship" class="form-select">
+                            <option value="friend">FRIEND</option>
+                            <option value="classmate">CLASSMATE</option>
+                            <option value="colleague">COLLEAGUE</option>
+                            <option value="family">FAMILY</option>
+                            <option value="student">STUDENT</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="recipient_interests" class="form-label" id="label-interests">THEIR INTERESTS (OPTIONAL)</label>
+                        <textarea id="recipient_interests" name="recipient_interests" class="form-textarea" rows="3" 
+                                  placeholder="e.g., loves romance novels, enjoys character-driven stories..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="language" class="form-label" id="label-language">LANGUAGE</label>
+                        <select id="language" name="language" class="form-select">
+                            <option value="English">ENGLISH</option>
+                            <option value="中文">中文</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tone" class="form-label" id="label-tone">RECOMMENDATION TONE</label>
+                        <select id="tone" name="tone" class="form-select">
+                            <option value="friendly and enthusiastic">FRIENDLY & ENTHUSIASTIC</option>
+                            <option value="professional and objective">PROFESSIONAL & OBJECTIVE</option>
+                            <option value="casual and humorous">CASUAL & HUMOROUS</option>
+                            <option value="warm and caring">WARM & CARING</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="pixel-btn" id="submit-btn" style="width: 100%; margin-top: 20px;">
+                        GENERATE AUDIO RECOMMENDATION
+                    </button>
+                </form>
+                
+                <div class="loading" id="loading">
+                    <div class="loading-text" id="loading-text1">GENERATING PERSONALIZED BOOK TALK...</div>
+                    <div class="loading-bar">
+                        <div class="loading-fill"></div>
+                    </div>
+                    <div class="loading-text" id="loading-text2">PROCESSING NEURAL NETWORKS... 10-15 SECONDS</div>
+                </div>
+                
+                <div class="result" id="result">
+                    <div class="result-header" id="success-title">BOOK TALK GENERATED SUCCESSFULLY!</div>
+                    <div class="audio-container">
+                        <audio controls class="audio-player" id="audioPlayer">
+                            Your browser does not support audio playback.
+                        </audio>
+                    </div>
+                    <div class="share-container">
+                        <label class="form-label" id="share-title">SHARE YOUR RECOMMENDATION</label>
+                        <input type="text" id="shareUrl" class="share-url" readonly placeholder="Share link will appear here">
+                        <button onclick="copyToClipboard()" class="pixel-btn" id="copy-btn" style="width: 100%; margin-top: 10px;">COPY LINK</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Language Switcher -->
+    <div class="lang-switch" onclick="toggleLanguage()">
+        <span id="lang-switch">中文</span>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'https://shh-elf.onrender.com';  // 你的 Render 后端 URL
+        
+        console.log('API Base URL:', API_BASE_URL);
+        console.log('Frontend loaded - Y2K PIXEL MODE ACTIVATED');
+
+        // Matrix Rain Effect
+        function initMatrix() {
+            const canvas = document.getElementById('matrix');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const chars = '01010101SHHELFBOOK';
+            const charSize = 14;
+            const columns = canvas.width / charSize;
+            const drops = [];
+            
+            for (let i = 0; i < columns; i++) {
+                drops[i] = 1;
+            }
+            
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#003300';
+                ctx.font = charSize + 'px monospace';
+                
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * charSize, drops[i] * charSize);
+                    
+                    if (drops[i] * charSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    
+                    drops[i]++;
+                }
+            }
+            
+            setInterval(draw, 50);
+        }
+        
+        // Initialize matrix effect
+        initMatrix();
+        
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            initMatrix();
+        });
+
+        // Language translations
+        const translations = {
+            en: {
+                'label-book': "BOOK TITLE",
+                'label-recipient': "RECOMMEND TO",
+                'label-relationship': "RELATIONSHIP",
+                'label-interests': "THEIR INTERESTS (OPTIONAL)",
+                'label-language': "LANGUAGE",
+                'label-tone': "RECOMMENDATION TONE",
+                'submit-btn': "GENERATE AUDIO RECOMMENDATION",
+                'loading-text1': "GENERATING PERSONALIZED BOOK TALK...",
+                'loading-text2': "PROCESSING NEURAL NETWORKS... 10-15 SECONDS",
+                'success-title': "BOOK TALK GENERATED SUCCESSFULLY!",
+                'share-title': "SHARE YOUR RECOMMENDATION",
+                'copy-btn': "COPY LINK",
+                'lang-switch': "中文",
+                placeholders: {
+                    book: "e.g., The Seven Husbands of Evelyn Hugo",
+                    recipient: "e.g., Sarah, my book-loving friend",
+                    interests: "e.g., loves romance novels, enjoys character-driven stories..."
+                },
+                relationships: ["FRIEND", "CLASSMATE", "COLLEAGUE", "FAMILY", "STUDENT"],
+                relationshipValues: ["friend", "classmate", "colleague", "family", "student"],
+                tones: ["FRIENDLY & ENTHUSIASTIC", "PROFESSIONAL & OBJECTIVE", "CASUAL & HUMOROUS", "WARM & CARING"],
+                toneValues: ["friendly and enthusiastic", "professional and objective", "casual and humorous", "warm and caring"]
+            },
+            zh: {
+                'label-book': "书籍名称",
+                'label-recipient': "推荐给谁",
+                'label-relationship': "你们的关系",
+                'label-interests': "TA的兴趣爱好（可选）",
+                'label-language': "语言",
+                'label-tone': "推荐语调",
+                'submit-btn': "生成语音推荐",
+                'loading-text1': "正在生成个性化书籍推荐...",
+                'loading-text2': "神经网络处理中... 10-15秒",
+                'success-title': "书籍推荐生成成功！",
+                'share-title': "分享你的推荐",
+                'copy-btn': "复制链接",
+                'lang-switch': "ENGLISH",
+                placeholders: {
+                    book: "例如：《活着》",
+                    recipient: "例如：我的朋友小明",
+                    interests: "例如：喜欢文学小说，爱看历史故事..."
+                },
+                relationships: ["朋友", "同学", "同事", "家人", "学生"],
+                relationshipValues: ["朋友", "同学", "同事", "家人", "学生"],
+                tones: ["友好热情", "专业客观", "轻松幽默", "温暖亲切"],
+                toneValues: ["友好热情", "专业客观", "轻松幽默", "温暖亲切"]
+            }
+        };
+
+        let currentLang = 'en';
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
+            updateLanguage();
+        }
+
+        function updateLanguage() {
+            const t = translations[currentLang];
+            
+            // Update labels and text
+            Object.keys(t).forEach(key => {
+                const element = document.getElementById(key);
+                if (element && typeof t[key] === 'string') {
+                    element.textContent = t[key];
+                }
+            });
+            
+            // Update placeholders
+            if (t.placeholders) {
+                document.getElementById('book_title').placeholder = t.placeholders.book;
+                document.getElementById('recipient_name').placeholder = t.placeholders.recipient;
+                document.getElementById('recipient_interests').placeholder = t.placeholders.interests;
+            }
+            
+            // Update dropdown options
+            if (t.relationships) {
+                const relationshipSelect = document.getElementById('relationship');
+                relationshipSelect.innerHTML = '';
+                t.relationships.forEach((rel, i) => {
+                    const option = document.createElement('option');
+                    option.value = t.relationshipValues[i];
+                    option.textContent = rel;
+                    relationshipSelect.appendChild(option);
+                });
+            }
+            
+            if (t.tones) {
+                const toneSelect = document.getElementById('tone');
+                toneSelect.innerHTML = '';
+                t.tones.forEach((tone, i) => {
+                    const option = document.createElement('option');
+                    option.value = t.toneValues[i];
+                    option.textContent = tone;
+                    toneSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Form submission
+        document.getElementById('recommendationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const loadingDiv = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('errorMessage');
+            
+            // Hide previous results/errors
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            submitBtn.disabled = true;
+            
+            // Collect form data
+            const formData = {
+                book_title: document.getElementById('book_title').value,
+                recipient_name: document.getElementById('recipient_name').value,
+                relationship: document.getElementById('relationship').value,
+                recipient_interests: document.getElementById('recipient_interests').value,
+                tone: document.getElementById('tone').value,
+                language: document.getElementById('language').value
+            };
+            
+            try {
+                console.log('Sending request to:', `${API_BASE_URL}/api/generate-recommendation`);
+                console.log('Form data:', formData);
+                
+                const response = await fetch(`${API_BASE_URL}/api/generate-recommendation`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Response data:', result);
+                
+                if (result.success) {
+                    // Show result
+                    loadingDiv.style.display = 'none';
+                    resultDiv.style.display = 'block';
+                    
+                    // Set audio player
+                    const audioPlayer = document.getElementById('audioPlayer');
+                    audioPlayer.src = `${API_BASE_URL}/${result.audio_path}`;
+                    
+                    // Set share URL
+                    const shareUrl = `${window.location.origin}/share.html?id=${result.share_id}`;
+                    document.getElementById('shareUrl').value = shareUrl;
+                    
+                    // Scroll to result
+                    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    throw new Error('SYSTEM ERROR: GENERATION FAILED');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loadingDiv.style.display = 'none';
+                showError(`SYSTEM ERROR: ${error.message}`);
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+        
+        function copyToClipboard() {
+            const shareUrl = document.getElementById('shareUrl');
+            shareUrl.select();
+            document.execCommand('copy');
+            
+            const copyBtn = document.getElementById('copy-btn');
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = currentLang === 'en' ? '✓ COPIED!' : '✓ 已复制!';
+            
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+            }, 2000);
+        }
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Initialize
+        window.onload = function() {
+            updateLanguage();
+            console.log('Y2K PIXEL MODE ACTIVATED');
+            console.log('API Base URL:', API_BASE_URL);
+            
+            // Test API connection
+            fetch(`${API_BASE_URL}/api/health`)
+                .then(response => response.json())
+                .then(data => console.log('Backend status:', data))
+                .catch(error => console.error('Backend connection failed:', error));
+        };
+    </script>
+</body>
+</html>
