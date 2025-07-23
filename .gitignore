@@ -6,3 +6,5 @@ audio/
 test*.py
 test*.mp3
 .DS_Store
+.env
+.env_backup
