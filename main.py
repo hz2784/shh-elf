@@ -316,11 +316,16 @@ async def get_shared_recommendation(share_id: str):
         "message": "推荐存在"
     }
 
+@app.get("/debug/{test_id}")
+async def debug_route(test_id: str):
+    """Debug route to test deployment"""
+    return {"debug": True, "test_id": test_id, "message": "New routes working"}
+
 @app.get("/api/health")
 async def health_check():
     """健康检查API"""
     return {
-        "status": "healthy", 
+        "status": "healthy",
         "message": "Shh-elf API is operational!",
         "services": {
             "openai": "configured" if OPENAI_API_KEY else "missing",
