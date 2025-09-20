@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import requests
 import os
@@ -226,13 +227,35 @@ async def generate_recommendation(req: BookRecommendation):
         print(f"错误: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/share/{share_id}")
+async def share_recommendation_page(share_id: str):
+    """分享推荐页面"""
+    audio_file = f"audio/rec_{share_id}.mp3"
+    if not os.path.exists(audio_file):
+        raise HTTPException(status_code=404, detail="推荐不存在")
+
+    # Read the share.html content and inject the share_id
+    try:
+        with open("share.html", "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        # Replace the API_BASE_URL and ensure it points to current domain
+        html_content = html_content.replace(
+            "const API_BASE_URL = 'https://shh-elf.onrender.com';",
+            f"const API_BASE_URL = window.location.origin;"
+        )
+
+        return HTMLResponse(content=html_content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Share page not found")
+
 @app.get("/api/share/{share_id}")
 async def get_shared_recommendation(share_id: str):
     """获取分享的推荐信息"""
     audio_file = f"audio/rec_{share_id}.mp3"
     if not os.path.exists(audio_file):
         raise HTTPException(status_code=404, detail="推荐不存在")
-    
+
     return {
         "success": True,
         "share_id": share_id,

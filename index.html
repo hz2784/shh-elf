@@ -913,8 +913,8 @@
                     const audioPlayer = document.getElementById('audioPlayer');
                     audioPlayer.src = `${API_BASE_URL}/${result.audio_path}`;
 
-                    // Set share URL
-                    const shareUrl = `${window.location.origin}/share.html?id=${result.share_id}`;
+                    // Set share URL - use backend sharing for reliable access
+                    const shareUrl = `${API_BASE_URL}/share/${result.share_id}`;
                     document.getElementById('shareUrl').value = shareUrl;
                     
                     // Scroll to result
