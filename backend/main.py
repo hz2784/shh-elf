@@ -120,24 +120,66 @@ Generate the recommendation:
         print(f"GPT API错误: {str(e)}")
         raise HTTPException(status_code=500, detail=f"GPT API错误: {str(e)}")
 
-# ElevenLabs文本转语音
+# 智能文本转语音 - 根据语言选择最佳API
 def text_to_speech(text: str, filename: str, language: str) -> str:
-    """使用ElevenLabs将文本转换为语音"""
-    
-    voice_id = "9BWtsMINqrJLrRacOk9x"  # Aria voice
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-    
+    """根据语言选择最佳TTS服务：中文使用OpenAI TTS，英文使用ElevenLabs"""
+
     print(f"=== 语音生成调试信息 ===")
     print(f"文本: {text}")
     print(f"文件名: {filename}")
     print(f"语言: {language}")
-        
+
+    if language == "中文":
+        return openai_text_to_speech(text, filename)
+    else:
+        return elevenlabs_text_to_speech(text, filename)
+
+def openai_text_to_speech(text: str, filename: str) -> str:
+    """使用OpenAI TTS生成中文语音 - 更自然的中文发音"""
+
+    url = "https://api.openai.com/v1/audio/speech"
+
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "model": "tts-1",  # 或 tts-1-hd 用于更高质量
+        "input": text,
+        "voice": "alloy",  # 支持中文的声音: alloy, echo, fable, onyx, nova, shimmer
+        "response_format": "mp3",
+        "speed": 1.0
+    }
+
+    try:
+        print(f"使用OpenAI TTS生成中文语音...")
+        response = requests.post(url, json=data, headers=headers)
+        print(f"OpenAI TTS响应状态: {response.status_code}")
+        response.raise_for_status()
+
+        audio_path = f"audio/{filename}.mp3"
+        with open(audio_path, "wb") as f:
+            f.write(response.content)
+
+        print(f"中文音频文件已保存: {audio_path}")
+        return audio_path
+    except Exception as e:
+        print(f"OpenAI TTS错误: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"中文语音生成错误: {str(e)}")
+
+def elevenlabs_text_to_speech(text: str, filename: str) -> str:
+    """使用ElevenLabs生成英文语音"""
+
+    voice_id = "9BWtsMINqrJLrRacOk9x"  # Aria voice
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+
     headers = {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
         "xi-api-key": ELEVENLABS_API_KEY
     }
-    
+
     data = {
         "text": text,
         "model_id": "eleven_multilingual_v2",
@@ -148,21 +190,22 @@ def text_to_speech(text: str, filename: str, language: str) -> str:
             "use_speaker_boost": True
         }
     }
-    
+
     try:
+        print(f"使用ElevenLabs生成英文语音...")
         response = requests.post(url, json=data, headers=headers)
         print(f"ElevenLabs响应状态: {response.status_code}")
         response.raise_for_status()
-        
+
         audio_path = f"audio/{filename}.mp3"
         with open(audio_path, "wb") as f:
             f.write(response.content)
-        
-        print(f"音频文件已保存: {audio_path}")
+
+        print(f"英文音频文件已保存: {audio_path}")
         return audio_path
     except Exception as e:
-        print(f"语音生成错误: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"语音生成错误: {str(e)}")
+        print(f"ElevenLabs错误: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"英文语音生成错误: {str(e)}")
 
 # API路由
 
