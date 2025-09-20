@@ -30,6 +30,9 @@ app.add_middleware(
 # 创建必要目录
 Path("audio").mkdir(exist_ok=True)
 
+# 简单的内存存储来记录每个分享的语言信息
+share_language_store = {}
+
 # 挂载音频文件服务
 app.mount("/audio", StaticFiles(directory="audio"), name="audio")
 
@@ -252,7 +255,10 @@ async def generate_recommendation(req: BookRecommendation):
         
         # 生成语音文件
         audio_path = text_to_speech(recommendation_text, filename, req.language)
-        
+
+        # 存储分享的语言信息
+        share_language_store[content_hash] = req.language
+
         response = RecommendationResponse(
             success=True,
             recommendation_text=recommendation_text,
@@ -272,11 +278,89 @@ async def generate_recommendation(req: BookRecommendation):
 
 @app.get("/share/{share_id}")
 async def share_recommendation_page(share_id: str):
-    """分享推荐页面"""
+    """分享推荐页面 - 支持多语言"""
     audio_file = f"audio/rec_{share_id}.mp3"
     if not os.path.exists(audio_file):
         raise HTTPException(status_code=404, detail="推荐不存在")
 
+    # 获取推荐的语言，默认为英文
+    language = share_language_store.get(share_id, "English")
+
+    if language == "中文":
+        return chinese_share_page(share_id)
+    else:
+        return english_share_page(share_id)
+
+def chinese_share_page(share_id: str) -> HTMLResponse:
+    """中文分享页面"""
+    html_content = f"""<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHH-ELF :: 个性化书籍推荐分享</title>
+    <meta name="description" content="有人通过 SHH-ELF 与你分享了一个个性化书籍推荐！">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        :root {{
+            --primary-green: #00ff00; --dark-green: #008000; --bg-black: #000000;
+            --bg-dark: #111111; --white: #ffffff; --gray: #333333; --light-gray: #666666;
+        }}
+        body {{ font-family: 'VT323', 'Courier New', monospace; background: var(--bg-black);
+            color: var(--primary-green); line-height: 1.4; font-size: 18px; cursor: crosshair; min-height: 100vh; }}
+        body::before {{ content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(transparent 50%, rgba(0, 255, 0, 0.03) 50%);
+            background-size: 100% 4px; pointer-events: none; z-index: 9999; }}
+        @keyframes flicker {{ 0%, 100% {{ opacity: 1; }} 98% {{ opacity: 0.98; }} 99% {{ opacity: 1; }} }}
+        body {{ animation: flicker 3s infinite; }}
+        .main-content {{ margin-top: 60px; padding: 40px 20px; display: flex; justify-content: center;
+            align-items: center; min-height: calc(100vh - 60px); }}
+        .share-container {{ max-width: 600px; width: 100%; border: 3px solid var(--primary-green);
+            background: var(--bg-dark); padding: 40px; text-align: center; }}
+        .share-header {{ font-size: 2rem; text-transform: uppercase; letter-spacing: 2px;
+            margin-bottom: 30px; color: var(--primary-green); text-shadow: 2px 2px 0px var(--dark-green); }}
+        .share-message {{ font-size: 1.2rem; margin-bottom: 30px; color: var(--white); line-height: 1.6; }}
+        .audio-container {{ margin: 30px 0; padding: 20px; border: 2px solid var(--light-gray);
+            background: var(--bg-black); }}
+        .audio-player {{ width: 100%; background: var(--bg-black); border: 2px solid var(--primary-green);
+            margin-top: 10px; }}
+        .pixel-btn {{ background: var(--bg-black); color: var(--primary-green);
+            border: 3px solid var(--primary-green); padding: 12px 24px; font-family: 'VT323', monospace;
+            font-size: 1.2rem; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+            text-decoration: none; display: inline-block; margin-top: 20px;
+            box-shadow: 4px 4px 0px var(--dark-green); }}
+        .pixel-btn:hover {{ background: var(--primary-green); color: var(--bg-black);
+            transform: translate(2px, 2px); box-shadow: 2px 2px 0px var(--dark-green); }}
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <div class="share-container">
+            <div class="share-header">📚 书籍推荐</div>
+            <div class="share-message">
+                有人通过 SHH-ELF 与你分享了一个个性化书籍推荐！
+            </div>
+            <div class="audio-container">
+                <div style="color: var(--primary-green); margin-bottom: 10px; text-transform: uppercase;">
+                    🎧 语音推荐：
+                </div>
+                <audio controls class="audio-player">
+                    <source src="/audio/rec_{share_id}.mp3" type="audio/mpeg">
+                    你的浏览器不支持音频播放。
+                </audio>
+            </div>
+            <div style="margin-top: 30px;">
+                <a href="https://hz2784.github.io/" class="pixel-btn">创建你的推荐</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content)
+
+def english_share_page(share_id: str) -> HTMLResponse:
+    """英文分享页面"""
     # Inline HTML for share page
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
