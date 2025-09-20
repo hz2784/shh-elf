@@ -234,20 +234,73 @@ async def share_recommendation_page(share_id: str):
     if not os.path.exists(audio_file):
         raise HTTPException(status_code=404, detail="推荐不存在")
 
-    # Read the share.html content and inject the share_id
-    try:
-        with open("share.html", "r", encoding="utf-8") as f:
-            html_content = f.read()
+    # Inline HTML for share page
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHH-ELF :: Shared Book Recommendation</title>
+    <meta name="description" content="Someone has shared a personalized book recommendation with you through Shh-elf!">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        :root {{
+            --primary-green: #00ff00; --dark-green: #008000; --bg-black: #000000;
+            --bg-dark: #111111; --white: #ffffff; --gray: #333333; --light-gray: #666666;
+        }}
+        body {{ font-family: 'VT323', 'Courier New', monospace; background: var(--bg-black);
+            color: var(--primary-green); line-height: 1.4; font-size: 18px; cursor: crosshair; min-height: 100vh; }}
+        body::before {{ content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(transparent 50%, rgba(0, 255, 0, 0.03) 50%);
+            background-size: 100% 4px; pointer-events: none; z-index: 9999; }}
+        @keyframes flicker {{ 0%, 100% {{ opacity: 1; }} 98% {{ opacity: 0.98; }} 99% {{ opacity: 1; }} }}
+        body {{ animation: flicker 3s infinite; }}
+        .main-content {{ margin-top: 60px; padding: 40px 20px; display: flex; justify-content: center;
+            align-items: center; min-height: calc(100vh - 60px); }}
+        .share-container {{ max-width: 600px; width: 100%; border: 3px solid var(--primary-green);
+            background: var(--bg-dark); padding: 40px; text-align: center; }}
+        .share-header {{ font-size: 2rem; text-transform: uppercase; letter-spacing: 2px;
+            margin-bottom: 30px; color: var(--primary-green); text-shadow: 2px 2px 0px var(--dark-green); }}
+        .share-message {{ font-size: 1.2rem; margin-bottom: 30px; color: var(--white); line-height: 1.6; }}
+        .audio-container {{ margin: 30px 0; padding: 20px; border: 2px solid var(--light-gray);
+            background: var(--bg-black); }}
+        .audio-player {{ width: 100%; background: var(--bg-black); border: 2px solid var(--primary-green);
+            margin-top: 10px; }}
+        .pixel-btn {{ background: var(--bg-black); color: var(--primary-green);
+            border: 3px solid var(--primary-green); padding: 12px 24px; font-family: 'VT323', monospace;
+            font-size: 1.2rem; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+            text-decoration: none; display: inline-block; margin-top: 20px;
+            box-shadow: 4px 4px 0px var(--dark-green); }}
+        .pixel-btn:hover {{ background: var(--primary-green); color: var(--bg-black);
+            transform: translate(2px, 2px); box-shadow: 2px 2px 0px var(--dark-green); }}
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <div class="share-container">
+            <div class="share-header">📚 Book Recommendation</div>
+            <div class="share-message">
+                Someone has shared a personalized book recommendation with you through SHH-ELF!
+            </div>
+            <div class="audio-container">
+                <div style="color: var(--primary-green); margin-bottom: 10px; text-transform: uppercase;">
+                    🎧 Audio Recommendation:
+                </div>
+                <audio controls class="audio-player">
+                    <source src="/audio/rec_{share_id}.mp3" type="audio/mpeg">
+                    Your browser does not support audio playback.
+                </audio>
+            </div>
+            <div style="margin-top: 30px;">
+                <a href="/" class="pixel-btn">Create Your Own Recommendation</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
 
-        # Replace the API_BASE_URL and ensure it points to current domain
-        html_content = html_content.replace(
-            "const API_BASE_URL = 'https://shh-elf.onrender.com';",
-            f"const API_BASE_URL = window.location.origin;"
-        )
-
-        return HTMLResponse(content=html_content)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Share page not found")
+    return HTMLResponse(content=html_content)
 
 @app.get("/api/share/{share_id}")
 async def get_shared_recommendation(share_id: str):
