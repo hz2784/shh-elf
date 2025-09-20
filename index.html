@@ -903,16 +903,16 @@
                 
                 const result = await response.json();
                 console.log('Response data:', result);
-                
+
                 if (result.success) {
                     // Show result
                     loadingDiv.style.display = 'none';
                     resultDiv.style.display = 'block';
-                    
+
                     // Set audio player
                     const audioPlayer = document.getElementById('audioPlayer');
                     audioPlayer.src = `${API_BASE_URL}/${result.audio_path}`;
-                    
+
                     // Set share URL
                     const shareUrl = `${window.location.origin}/share.html?id=${result.share_id}`;
                     document.getElementById('shareUrl').value = shareUrl;
@@ -932,17 +932,40 @@
         });
         
         function copyToClipboard() {
-            const shareUrl = document.getElementById('shareUrl');
-            shareUrl.select();
-            document.execCommand('copy');
-            
-            const copyBtn = document.getElementById('copy-btn');
-            const originalText = copyBtn.textContent;
-            copyBtn.textContent = currentLang === 'en' ? '✓ COPIED!' : '✓ 已复制!';
-            
-            setTimeout(() => {
-                copyBtn.textContent = originalText;
-            }, 2000);
+            const shareUrlInput = document.getElementById('shareUrl');
+            const urlToCopy = shareUrlInput.value;
+
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(urlToCopy).then(() => {
+                    showCopySuccess();
+                }).catch(err => {
+                    fallbackCopy();
+                });
+            } else {
+                fallbackCopy();
+            }
+
+            function fallbackCopy() {
+                shareUrlInput.select();
+                shareUrlInput.setSelectionRange(0, 99999); // For mobile
+                try {
+                    document.execCommand('copy');
+                    showCopySuccess();
+                } catch (err) {
+                    console.error('Copy failed:', err);
+                }
+            }
+
+            function showCopySuccess() {
+                const copyBtn = document.getElementById('copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = currentLang === 'en' ? '✓ COPIED!' : '✓ 已复制!';
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }
         }
 
         // Smooth scrolling for anchor links
