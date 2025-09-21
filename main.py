@@ -100,6 +100,16 @@ class Token(BaseModel):
     token_type: str
     user: UserResponse
 
+class RegisterResponse(BaseModel):
+    success: bool
+    message: str
+    email_sent: Optional[bool] = None
+    user_id: Optional[int] = None
+    # For direct login case
+    access_token: Optional[str] = None
+    token_type: Optional[str] = None
+    user: Optional[UserResponse] = None
+
 class RecommendationHistoryResponse(BaseModel):
     id: int
     book_title: str
@@ -355,7 +365,7 @@ async def root():
         "frontend": "Please serve frontend separately"
     }
 
-@app.post("/api/register", response_model=Token)
+@app.post("/api/register", response_model=RegisterResponse)
 async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     """用户注册"""
     # 验证用户名长度和格式
@@ -422,6 +432,8 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
             )
 
             return {
+                "success": True,
+                "message": "Registration successful! (Email service unavailable, account auto-verified)",
                 "access_token": access_token,
                 "token_type": "bearer",
                 "user": {
@@ -429,8 +441,7 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
                     "username": user.username,
                     "email": user.email,
                     "created_at": user.created_at.isoformat()
-                },
-                "message": "Registration successful! (Email service unavailable, account auto-verified)"
+                }
             }
 
     except Exception as e:
@@ -444,6 +455,8 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         )
 
         return {
+            "success": True,
+            "message": "Registration successful! (Email service unavailable, account auto-verified)",
             "access_token": access_token,
             "token_type": "bearer",
             "user": {
@@ -451,8 +464,7 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
                 "username": user.username,
                 "email": user.email,
                 "created_at": user.created_at.isoformat()
-            },
-            "message": "注册成功！（邮件服务未配置，已自动验证）"
+            }
         }
 
 @app.post("/api/login", response_model=Token)
