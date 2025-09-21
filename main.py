@@ -39,6 +39,8 @@ app.mount("/audio", StaticFiles(directory="audio"), name="audio")
 # API密钥
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
+AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 
 # 数据模型
 class BookRecommendation(BaseModel):
@@ -133,9 +135,52 @@ def text_to_speech(text: str, filename: str, language: str) -> str:
     print(f"语言: {language}")
 
     if language == "中文":
-        return openai_text_to_speech(text, filename)
+        # 优先使用Azure Speech Services，默认使用东北口音
+        return azure_text_to_speech(text, filename, "zh-CN-liaoning-XiaobeiNeural")
     else:
         return elevenlabs_text_to_speech(text, filename)
+
+def azure_text_to_speech(text: str, filename: str, voice_name: str = "zh-CN-XiaoxiaoNeural") -> str:
+    """使用Azure Speech Services生成中文语音 - 专业中文声优"""
+
+    if not AZURE_SPEECH_KEY or not AZURE_SPEECH_REGION:
+        print("Azure Speech Services未配置，回退到OpenAI TTS")
+        return openai_text_to_speech(text, filename)
+
+    # Azure Speech Services endpoint
+    url = f"https://{AZURE_SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
+
+    headers = {
+        "Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY,
+        "Content-Type": "application/ssml+xml",
+        "X-Microsoft-OutputFormat": "audio-24khz-160kbitrate-mono-mp3"
+    }
+
+    # SSML格式的语音合成请求
+    ssml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-CN">
+    <voice name="{voice_name}">
+        {text}
+    </voice>
+</speak>"""
+
+    try:
+        print(f"使用Azure Speech Services生成中文语音...")
+        print(f"声音: {voice_name}")
+        response = requests.post(url, headers=headers, data=ssml.encode('utf-8'))
+        print(f"Azure Speech响应状态: {response.status_code}")
+        response.raise_for_status()
+
+        audio_path = f"audio/{filename}.mp3"
+        with open(audio_path, "wb") as f:
+            f.write(response.content)
+
+        print(f"Azure中文音频文件已保存: {audio_path}")
+        return audio_path
+    except Exception as e:
+        print(f"Azure Speech错误: {str(e)}")
+        print("回退到OpenAI TTS")
+        return openai_text_to_speech(text, filename)
 
 def openai_text_to_speech(text: str, filename: str) -> str:
     """使用OpenAI TTS生成中文语音 - 更自然的中文发音"""
