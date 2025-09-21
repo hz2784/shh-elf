@@ -407,7 +407,7 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     if email_sent:
         return {
             "success": True,
-            "message": "注册成功！请检查你的邮箱并点击验证链接完成注册。",
+            "message": "Registration successful! Please check your email and click the verification link to complete registration.",
             "email_sent": True,
             "user_id": user.id
         }

@@ -775,14 +775,41 @@
                 finalOptions.headers = { ...defaultOptions.headers, ...options.headers };
             }
 
-            const response = await fetch(url, finalOptions);
+            console.log('Making API request to:', url);
+            console.log('Request options:', finalOptions);
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+            try {
+                const response = await fetch(url, finalOptions);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+                if (!response.ok) {
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch (e) {
+                        errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+                    }
+                    console.error('API error response:', errorData);
+                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('API response data:', result);
+                return result;
+
+            } catch (error) {
+                console.error('API request failed:', error);
+
+                // Handle different types of errors
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    throw new Error('Network error: Unable to reach server');
+                } else if (error.message.includes('CORS')) {
+                    throw new Error('CORS error: Cross-origin request blocked');
+                } else {
+                    throw error;
+                }
             }
-
-            return response.json();
         }
 
         // Login function
@@ -841,17 +868,32 @@
             }
 
             try {
+                console.log('Attempting registration for:', username, email);
+
                 const response = await apiRequest('/api/register', {
                     method: 'POST',
                     body: JSON.stringify({ username, email, password })
                 });
 
-                if (response.email_sent) {
+                console.log('Registration response:', response);
+
+                // Check if the response indicates email verification is needed
+                if (response.success && response.email_sent) {
                     // Email verification flow
                     hideModal('registerModal');
-                    showEmailVerificationMessage(response.message);
-                } else {
-                    // Direct registration success
+                    showEmailVerificationMessage(response.message || 'Registration successful! Please check your email for verification.');
+                    return true;
+                }
+
+                // Also check for any response with email_sent flag
+                if (response.email_sent) {
+                    hideModal('registerModal');
+                    showEmailVerificationMessage(response.message || 'Registration successful! Please check your email for verification.');
+                    return true;
+                }
+
+                // Check for access token (direct registration success)
+                if (response.access_token) {
                     authToken = response.access_token;
                     currentUser = response.user;
 
@@ -860,12 +902,27 @@
 
                     updateUserDisplay();
                     hideModal('registerModal');
-                    showSuccess(response.message || 'Registration successful!');
+                    showSuccess('Registration successful!');
+                    return true;
                 }
 
+                // If we get here, something unexpected happened
+                console.warn('Unexpected registration response:', response);
+                showSuccess('Registration may have succeeded. Please check your email.');
+                hideModal('registerModal');
                 return true;
+
             } catch (error) {
-                showError(`Registration failed: ${error.message}`);
+                console.error('Registration error details:', error);
+
+                // More detailed error handling
+                if (error.message.includes('fetch')) {
+                    showError('Network error: Unable to connect to server. Please check your internet connection and try again.');
+                } else if (error.message.includes('CORS')) {
+                    showError('Connection error: Please refresh the page and try again.');
+                } else {
+                    showError(`Registration failed: ${error.message}`);
+                }
                 return false;
             }
         }
