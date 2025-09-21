@@ -859,10 +859,10 @@
                 });
             }
 
-            // Control dialect selection visibility
+            // Control dialect selection visibility based on language select value
             const dialectGroup = document.getElementById('dialect-group');
             const languageSelect = document.getElementById('language');
-            if (currentLang === 'zh' || languageSelect.value === '中文') {
+            if (languageSelect.value === '中文') {
                 dialectGroup.style.display = 'block';
             } else {
                 dialectGroup.style.display = 'none';

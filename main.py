@@ -431,7 +431,7 @@ def chinese_share_page(share_id: str) -> HTMLResponse:
                 </audio>
             </div>
             <div style="margin-top: 30px;">
-                <a href="https://hz2784.github.io/" class="pixel-btn">创建你的推荐</a>
+                <a href="https://hz2784.github.io/shh-elf/" class="pixel-btn">创建你的推荐</a>
             </div>
         </div>
     </div>
@@ -500,8 +500,8 @@ def english_share_page(share_id: str) -> HTMLResponse:
                 </audio>
             </div>
             <div style="margin-top: 30px;">
-                <a href="https://hz2784.github.io/" class="pixel-btn">Create Your Own Recommendation</a>
-            </div>
+                <a href="https://hz2784.github.io/shh-elf/" class="pixel-btn">Create Your Own Recommendation</a>
+            </divki>
         </div>
     </div>
 </body>
