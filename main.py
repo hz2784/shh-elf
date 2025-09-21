@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.security import HTTPBearer
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -1201,6 +1201,28 @@ async def generate_gallery_audio():
     except Exception as e:
         print(f"Gallery audio generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/audio/{filename}")
+async def get_audio_file(filename: str):
+    """获取音频文件，带有 CORS 支持"""
+    audio_path = Path(f"audio/{filename}")
+
+    if not audio_path.exists() or not filename.endswith('.mp3'):
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    # 返回文件响应，带有 CORS 头
+    response = FileResponse(
+        path=audio_path,
+        media_type="audio/mpeg",
+        filename=filename
+    )
+
+    # 添加 CORS 头
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+
+    return response
 
 @app.get("/api/health")
 async def health_check():
