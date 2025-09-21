@@ -641,6 +641,222 @@
         .history-audio {
             margin-top: 10px;
         }
+
+        /* Book Gallery Styles */
+        .book-gallery {
+            margin: 40px 20px;
+            border: 3px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 30px;
+        }
+
+        .gallery-header {
+            text-align: center;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: var(--primary-green);
+        }
+
+        .gallery-desc {
+            text-align: center;
+            color: var(--white);
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .filter-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 2px solid var(--primary-green);
+            padding: 8px 16px;
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .book-card {
+            border: 2px solid var(--light-gray);
+            background: var(--bg-black);
+            padding: 20px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .book-card:hover {
+            border-color: var(--primary-green);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+        }
+
+        .book-header {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .book-cover {
+            width: 80px;
+            height: 120px;
+            border: 1px solid var(--light-gray);
+            background: var(--gray);
+            flex-shrink: 0;
+        }
+
+        .book-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .book-info {
+            flex: 1;
+        }
+
+        .book-title {
+            color: var(--primary-green);
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            line-height: 1.2;
+        }
+
+        .book-author {
+            color: var(--white);
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .book-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .meta-tag {
+            background: var(--primary-green);
+            color: var(--bg-black);
+            padding: 2px 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .difficulty-tag {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .vocab-tag {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .sample-section {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid var(--light-gray);
+            background: var(--bg-dark);
+        }
+
+        .sample-title {
+            color: var(--primary-green);
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .sample-text {
+            color: var(--white);
+            line-height: 1.6;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+
+        .formal-models {
+            margin: 10px 0;
+        }
+
+        .formal-model-tag {
+            display: inline-block;
+            background: var(--dark-green);
+            color: var(--white);
+            padding: 3px 8px;
+            margin: 2px;
+            font-size: 10px;
+            text-transform: uppercase;
+            border-radius: 2px;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .audio-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 8px 12px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .audio-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .audio-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .books-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .book-header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -692,6 +908,7 @@
                 TRANSFORM READING INTO A CURIOUS, SOCIAL, AND EMOTIONALLY ENGAGING 
                 EXPERIENCE THROUGH BITE-SIZED BOOK TALKS AND PERSONALIZED RECOMMENDATIONS.
             </div>
+            <a href="#gallery" class="pixel-btn" style="margin-right: 15px;">EXPLORE BOOK GALLERY</a>
             <a href="#playground" class="pixel-btn">INITIATE READING SEQUENCE</a>
         </section>
 
@@ -730,6 +947,26 @@
                         Peer recommendations matter more than generic algorithmic lists.
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Book Talk Gallery -->
+        <section id="gallery" class="book-gallery">
+            <div class="gallery-header">📚 BOOK TALK GALLERY</div>
+            <div class="gallery-desc">
+                Discover classic novels with difficulty levels, sample readings, and expert book talks.
+                Perfect for English learners who want to explore literature.
+            </div>
+
+            <div class="filter-controls">
+                <button class="filter-btn active" onclick="filterBooks('all')">ALL BOOKS</button>
+                <button class="filter-btn" onclick="filterBooks('B1')">B1 LEVEL</button>
+                <button class="filter-btn" onclick="filterBooks('B2')">B2 LEVEL</button>
+                <button class="filter-btn" onclick="filterBooks('formal-models')">FORMAL MODELS</button>
+            </div>
+
+            <div id="booksGrid" class="books-grid">
+                <div class="loading-text">Loading book gallery...</div>
             </div>
         </section>
 
@@ -1587,10 +1824,135 @@
             });
         });
 
+        // Book Gallery Functions
+        let allBooks = [];
+        let currentFilter = 'all';
+
+        async function loadBookGallery() {
+            try {
+                const response = await apiRequest('/api/book-gallery');
+                allBooks = response.books;
+                displayBooks(allBooks);
+            } catch (error) {
+                console.error('Failed to load book gallery:', error);
+                document.getElementById('booksGrid').innerHTML =
+                    '<div style="text-align: center; color: #ff0000; padding: 40px;">Failed to load book gallery</div>';
+            }
+        }
+
+        function displayBooks(books) {
+            const grid = document.getElementById('booksGrid');
+            if (books.length === 0) {
+                grid.innerHTML = '<div style="text-align: center; color: var(--light-gray); padding: 40px;">No books found</div>';
+                return;
+            }
+
+            grid.innerHTML = books.map(book => `
+                <div class="book-card" data-cefr="${book.cefr_level}">
+                    <div class="book-header">
+                        <div class="book-cover">
+                            <img src="${book.cover_url}" alt="${book.title}"
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='📚';">
+                        </div>
+                        <div class="book-info">
+                            <div class="book-title">${book.title}</div>
+                            <div class="book-author">by ${book.author}</div>
+                            <div class="book-meta">
+                                <span class="meta-tag difficulty-tag">${book.cefr_level}</span>
+                                <span class="meta-tag vocab-tag">${book.estimated_vocabulary} words</span>
+                                <span class="meta-tag">${book.genre}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sample-section">
+                        <div class="sample-title">📖 Sample Paragraph</div>
+                        <div class="sample-text">"${book.sample_paragraph}"</div>
+                        <div class="audio-controls">
+                            <button class="audio-btn" onclick="playAudio('${book.sample_audio_path}', this)">
+                                🎧 Listen Sample
+                            </button>
+                            <button class="audio-btn" onclick="playAudio('${book.book_talk_audio_path}', this)">
+                                🎙️ Book Talk
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="formal-models">
+                        <div style="color: var(--primary-green); font-size: 12px; margin-bottom: 5px;">FORMAL MODELS:</div>
+                        ${book.formal_models.map(model => `<span class="formal-model-tag">${model}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterBooks(filter) {
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            currentFilter = filter;
+            let filteredBooks = allBooks;
+
+            if (filter === 'B1') {
+                filteredBooks = allBooks.filter(book => book.cefr_level === 'B1');
+            } else if (filter === 'B2') {
+                filteredBooks = allBooks.filter(book => book.cefr_level === 'B2');
+            } else if (filter === 'formal-models') {
+                // Show books with interesting formal models
+                filteredBooks = allBooks.filter(book =>
+                    book.formal_models.some(model =>
+                        model.includes('thinking') || model.includes('illusion') || model.includes('form-giving')
+                    )
+                );
+            }
+
+            displayBooks(filteredBooks);
+        }
+
+        let currentAudio = null;
+        let currentButton = null;
+
+        function playAudio(audioPath, buttonElement) {
+            // Stop current audio if playing
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+                if (currentButton) {
+                    currentButton.textContent = currentButton.textContent.replace('⏸️', '🎧').replace('⏹️', '🎙️');
+                    currentButton.disabled = false;
+                }
+            }
+
+            // Play new audio
+            currentAudio = new Audio(`${API_BASE_URL}/${audioPath}`);
+            currentButton = buttonElement;
+
+            buttonElement.textContent = buttonElement.textContent.includes('Sample') ? '⏸️ Playing...' : '⏹️ Playing...';
+            buttonElement.disabled = true;
+
+            currentAudio.play().catch(error => {
+                console.error('Audio playback failed:', error);
+                buttonElement.textContent = '❌ Audio Error';
+                setTimeout(() => {
+                    buttonElement.textContent = buttonElement.textContent.includes('Sample') ? '🎧 Listen Sample' : '🎙️ Book Talk';
+                    buttonElement.disabled = false;
+                }, 2000);
+            });
+
+            currentAudio.onended = () => {
+                buttonElement.textContent = buttonElement.textContent.includes('Sample') ? '🎧 Listen Sample' : '🎙️ Book Talk';
+                buttonElement.disabled = false;
+                currentAudio = null;
+                currentButton = null;
+            };
+        }
+
         // Initialize
         window.onload = function() {
             updateLanguage();
             checkAuth(); // Check for saved authentication
+            loadBookGallery(); // Load book gallery
             console.log('Y2K PIXEL MODE ACTIVATED');
             console.log('API Base URL:', API_BASE_URL);
 
