@@ -188,20 +188,19 @@ def azure_text_to_speech(text: str, filename: str, voice_name: str = "zh-CN-Xiao
         "X-Microsoft-OutputFormat": "audio-24khz-160kbitrate-mono-mp3"
     }
 
-    # 智能SSML格式处理 - 优化断句和语调
-    enhanced_text = enhance_text_with_ssml(text)
+    # 简化SSML格式 - 避免复杂标签冲突
+    # enhanced_text = enhance_text_with_ssml(text)  # 暂时禁用
     ssml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-CN">
     <voice name="{voice_name}">
-        <prosody rate="0.9" pitch="+5%">
-            {enhanced_text}
-        </prosody>
+        {text}
     </voice>
 </speak>"""
 
     try:
         print(f"使用Azure Speech Services生成中文语音...")
         print(f"声音: {voice_name}")
+        print(f"SSML内容: {ssml}")
         response = requests.post(url, headers=headers, data=ssml.encode('utf-8'))
         print(f"Azure Speech响应状态: {response.status_code}")
         response.raise_for_status()
