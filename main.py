@@ -379,11 +379,19 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         )
 
     # 检查邮箱是否已存在
-    if get_user_by_email(db, user_data.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="邮箱已存在"
-        )
+    existing_user = get_user_by_email(db, user_data.email)
+    if existing_user:
+        # 提供更详细的错误信息
+        if existing_user.is_email_verified == 'true':
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This email address is already registered and verified. Please use a different email or try logging in."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This email address is already registered but not verified. Please check your email for the verification link or contact support."
+            )
 
     # 创建新用户
     user = create_user(db, user_data.username, user_data.email, user_data.password)
@@ -454,6 +462,23 @@ async def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
             "email": user.email,
             "created_at": user.created_at.isoformat()
         }
+    }
+
+@app.get("/api/check-email")
+async def check_email_availability(email: str, db: Session = Depends(get_db)):
+    """检查邮箱是否可用"""
+    existing_user = get_user_by_email(db, email)
+    if existing_user:
+        return {
+            "available": False,
+            "verified": existing_user.is_email_verified == 'true',
+            "message": "This email address is already registered" + (
+                " and verified" if existing_user.is_email_verified == 'true' else " but not verified"
+            )
+        }
+    return {
+        "available": True,
+        "message": "Email address is available"
     }
 
 @app.get("/api/me", response_model=UserResponse)

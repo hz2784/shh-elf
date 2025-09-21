@@ -391,6 +391,31 @@
             font-size: 1.2rem;
             margin-bottom: 20px;
         }
+
+        /* Email validation message */
+        .email-validation-message {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .email-validation-message.error {
+            color: #ff6b6b;
+            border-left: 2px solid #ff6b6b;
+            padding-left: 8px;
+        }
+
+        .email-validation-message.success {
+            color: var(--primary-green);
+            border-left: 2px solid var(--primary-green);
+            padding-left: 8px;
+        }
+
+        .email-validation-message.checking {
+            color: var(--light-gray);
+            border-left: 2px solid var(--light-gray);
+            padding-left: 8px;
+        }
         
         .loading-bar {
             width: 100%;
@@ -850,6 +875,7 @@
                 </div>
                 <div class="form-group">
                     <input type="email" id="registerEmail" class="form-input" placeholder="EMAIL" required>
+                    <div id="emailValidation" class="email-validation-message" style="display: none; margin-top: 5px; font-size: 12px;"></div>
                 </div>
                 <div class="form-group">
                     <input type="password" id="registerPassword" class="form-input" placeholder="PASSWORD (min 6 characters)" required minlength="6">
@@ -866,7 +892,7 @@
 
     <script>
         // API Configuration
-        const API_BASE_URL = 'https://shh-elf.onrender.com';  // 你的 Render 后端 URL
+        const API_BASE_URL = 'https://shh-elf.onrender.com';  // Production URL
 
         console.log('API Base URL:', API_BASE_URL);
         console.log('Frontend loaded - Y2K PIXEL MODE ACTIVATED');
@@ -967,7 +993,35 @@
         }
 
         // Register function
+        async function checkEmailAvailability(email) {
+            try {
+                const response = await apiRequest(`/api/check-email?email=${encodeURIComponent(email)}`);
+                return response;
+            } catch (error) {
+                console.error('Error checking email:', error);
+                return null;
+            }
+        }
+
         async function register(username, email, password) {
+            // Validate username first
+            if (username.length < 3 || username.length > 20) {
+                showError('用户名长度必须在3-20个字符之间');
+                return false;
+            }
+
+            if (password.length < 6) {
+                showError('密码长度至少为6个字符');
+                return false;
+            }
+
+            // Check email availability
+            const emailCheck = await checkEmailAvailability(email);
+            if (emailCheck && !emailCheck.available) {
+                showError(emailCheck.message);
+                return false;
+            }
+
             try {
                 const response = await apiRequest('/api/register', {
                     method: 'POST',
@@ -1305,6 +1359,54 @@
             }
 
             await register(username, email, password);
+        });
+
+        // Real-time email validation
+        let emailValidationTimeout;
+        document.getElementById('registerEmail').addEventListener('input', function(e) {
+            const email = e.target.value;
+            const validationDiv = document.getElementById('emailValidation');
+
+            // Clear previous timeout
+            if (emailValidationTimeout) {
+                clearTimeout(emailValidationTimeout);
+            }
+
+            // Hide validation if email is empty
+            if (!email.trim()) {
+                validationDiv.style.display = 'none';
+                return;
+            }
+
+            // Basic email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                validationDiv.style.display = 'block';
+                validationDiv.className = 'email-validation-message error';
+                validationDiv.textContent = 'Invalid email format';
+                return;
+            }
+
+            // Show checking message
+            validationDiv.style.display = 'block';
+            validationDiv.className = 'email-validation-message checking';
+            validationDiv.textContent = 'Checking availability...';
+
+            // Debounced API call
+            emailValidationTimeout = setTimeout(async () => {
+                const result = await checkEmailAvailability(email);
+                if (result) {
+                    if (result.available) {
+                        validationDiv.className = 'email-validation-message success';
+                        validationDiv.textContent = '✓ Email available';
+                    } else {
+                        validationDiv.className = 'email-validation-message error';
+                        validationDiv.textContent = '✗ ' + result.message;
+                    }
+                } else {
+                    validationDiv.style.display = 'none';
+                }
+            }, 500); // 500ms delay to avoid too many API calls
         });
 
         // Modified recommendation form submission to include auth headers
