@@ -19,6 +19,7 @@ from database import (
     get_recommendation_by_share_id, User, UserRecommendation,
     get_user_by_verification_token, verify_user_email, update_verification_token
 )
+from book_gallery import BookTalkGallery, SAMPLE_BOOKS
 from auth import (
     create_access_token, get_current_user, get_current_user_optional,
     ACCESS_TOKEN_EXPIRE_MINUTES
@@ -983,11 +984,118 @@ async def get_shared_recommendation(share_id: str):
         "message": "推荐存在"
     }
 
+@app.get("/api/book-gallery")
+async def get_book_gallery(db: Session = Depends(get_db)):
+    """获取书籍画廊列表"""
+    try:
+        # For MVP, return sample data
+        books = []
+        for book_data in SAMPLE_BOOKS:
+            book = {
+                "id": len(books) + 1,
+                "title": book_data["title"],
+                "author": book_data["author"],
+                "isbn": book_data["isbn"],
+                "cover_url": f"https://covers.openlibrary.org/b/isbn/{book_data['isbn']}-L.jpg",
+                "cefr_level": book_data["cefr_level"],
+                "estimated_vocabulary": book_data["estimated_vocabulary"],
+                "formal_models": book_data["formal_models"],
+                "sample_paragraph": book_data["sample_paragraph"],
+                "sample_audio_path": f"audio/gallery_sample_{book_data['isbn']}.mp3",
+                "book_talk_text": book_data["book_talk_text"],
+                "book_talk_audio_path": f"audio/gallery_talk_{book_data['isbn']}.mp3",
+                "genre": book_data["genre"],
+                "publication_year": book_data["publication_year"],
+                "page_count": book_data["page_count"],
+                "goodreads_rating": book_data["goodreads_rating"]
+            }
+            books.append(book)
+
+        return {
+            "success": True,
+            "books": books,
+            "total": len(books)
+        }
+    except Exception as e:
+        print(f"Book gallery error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/book-gallery/{book_id}")
+async def get_book_detail(book_id: int, db: Session = Depends(get_db)):
+    """获取单本书详细信息"""
+    try:
+        if book_id < 1 or book_id > len(SAMPLE_BOOKS):
+            raise HTTPException(status_code=404, detail="Book not found")
+
+        book_data = SAMPLE_BOOKS[book_id - 1]
+        book = {
+            "id": book_id,
+            "title": book_data["title"],
+            "author": book_data["author"],
+            "isbn": book_data["isbn"],
+            "cover_url": f"https://covers.openlibrary.org/b/isbn/{book_data['isbn']}-L.jpg",
+            "cefr_level": book_data["cefr_level"],
+            "estimated_vocabulary": book_data["estimated_vocabulary"],
+            "formal_models": book_data["formal_models"],
+            "sample_paragraph": book_data["sample_paragraph"],
+            "sample_audio_path": f"audio/gallery_sample_{book_data['isbn']}.mp3",
+            "book_talk_text": book_data["book_talk_text"],
+            "book_talk_audio_path": f"audio/gallery_talk_{book_data['isbn']}.mp3",
+            "genre": book_data["genre"],
+            "publication_year": book_data["publication_year"],
+            "page_count": book_data["page_count"],
+            "goodreads_rating": book_data["goodreads_rating"]
+        }
+
+        return {
+            "success": True,
+            "book": book
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Book detail error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate-gallery-audio")
+async def generate_gallery_audio():
+    """为书籍画廊生成示例音频（管理员功能）"""
+    try:
+        generated_files = []
+
+        for book_data in SAMPLE_BOOKS:
+            # Generate sample paragraph audio
+            sample_filename = f"gallery_sample_{book_data['isbn']}"
+            sample_audio = text_to_speech(
+                book_data["sample_paragraph"],
+                sample_filename,
+                "English"
+            )
+            generated_files.append(sample_audio)
+
+            # Generate book talk audio
+            talk_filename = f"gallery_talk_{book_data['isbn']}"
+            talk_audio = text_to_speech(
+                book_data["book_talk_text"],
+                talk_filename,
+                "English"
+            )
+            generated_files.append(talk_audio)
+
+        return {
+            "success": True,
+            "message": f"Generated {len(generated_files)} audio files for book gallery",
+            "files": generated_files
+        }
+    except Exception as e:
+        print(f"Gallery audio generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/health")
 async def health_check():
     """健康检查API"""
     return {
-        "status": "healthy", 
+        "status": "healthy",
         "message": "Shh-elf API is operational!",
         "services": {
             "openai": "configured" if OPENAI_API_KEY else "missing",
