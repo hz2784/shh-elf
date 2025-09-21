@@ -158,8 +158,8 @@ def enhance_text_with_ssml(text: str) -> str:
     # 在分号、冒号后添加短停顿
     enhanced = re.sub(r'([；：])', r'\1<break time="600ms"/>', enhanced)
 
-    # 强调重要词汇（书名、人名等）
-    enhanced = re.sub(r'《([^》]+)》', r'<emphasis level="moderate">《\1》</emphasis>', enhanced)
+    # 强调重要词汇（书名、人名等）- 移除书名号避免SSML冲突
+    enhanced = re.sub(r'《([^》]+)》', r'<emphasis level="moderate">\1</emphasis>', enhanced)
 
     # 为语气词添加适当的语调变化
     enhanced = re.sub(r'(哇|哦|呀|啊|嗯|哈哈)', r'<prosody pitch="+10%" rate="0.8">\1</prosody>', enhanced)
@@ -326,7 +326,8 @@ async def generate_recommendation(req: BookRecommendation):
         )
         
         print(f"生成的推荐文本: {recommendation_text}")
-        
+        print(f"接收到的方言参数: {req.dialect}")
+
         # 生成唯一文件名
         content_hash = hashlib.md5(
             f"{req.book_title}{req.recipient_name}{recommendation_text}".encode()
