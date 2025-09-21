@@ -3,6 +3,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Header
 from sqlalchemy.orm import Session
 from database import get_db, get_user_by_username
 import os
@@ -48,10 +49,19 @@ def get_current_user(username: str = Depends(verify_token), db: Session = Depend
         )
     return user
 
-def get_current_user_optional(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
+def get_current_user_optional(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
+    """Get current user if authenticated, otherwise return None"""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+
     try:
-        username = verify_token(credentials)
+        token = authorization.split(" ")[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+
         user = get_user_by_username(db, username=username)
         return user
-    except:
+    except (JWTError, IndexError):
         return None

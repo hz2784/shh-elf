@@ -948,7 +948,7 @@
                 }
             };
 
-            if (authToken) {
+            if (authToken && authToken.trim() !== '') {
                 defaultOptions.headers['Authorization'] = `Bearer ${authToken}`;
             }
 
@@ -1460,8 +1460,8 @@
                     'Accept': 'application/json'
                 };
 
-                // Add auth header if user is logged in
-                if (authToken) {
+                // Add auth header if user is logged in and has valid token
+                if (authToken && authToken.trim() !== '') {
                     headers['Authorization'] = `Bearer ${authToken}`;
                 }
 
