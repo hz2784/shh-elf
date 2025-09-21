@@ -402,17 +402,40 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     update_verification_token(db, user, verification_token)
 
     # 发送验证邮件
-    email_sent = send_verification_email(user.email, user.username, verification_token)
+    try:
+        email_sent = send_verification_email(user.email, user.username, verification_token)
 
-    if email_sent:
-        return {
-            "success": True,
-            "message": "Registration successful! Please check your email and click the verification link to complete registration.",
-            "email_sent": True,
-            "user_id": user.id
-        }
-    else:
-        # 如果邮件发送失败，直接验证用户（开发环境或邮件服务未配置）
+        if email_sent:
+            return {
+                "success": True,
+                "message": "Registration successful! Please check your email and click the verification link to complete registration.",
+                "email_sent": True,
+                "user_id": user.id
+            }
+        else:
+            # 邮件发送失败，直接验证用户
+            verify_user_email(db, user)
+
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            access_token = create_access_token(
+                data={"sub": user.username}, expires_delta=access_token_expires
+            )
+
+            return {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "created_at": user.created_at.isoformat()
+                },
+                "message": "Registration successful! (Email service unavailable, account auto-verified)"
+            }
+
+    except Exception as e:
+        print(f"Email sending error: {str(e)}")
+        # 如果邮件发送失败，直接验证用户
         verify_user_email(db, user)
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

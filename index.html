@@ -756,9 +756,13 @@
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // API helper function
+        // API helper function with timeout and better error handling
         async function apiRequest(endpoint, options = {}) {
             const url = `${API_BASE_URL}${endpoint}`;
+
+            // Set timeout for requests (30 seconds for registration, 10 seconds for others)
+            const timeoutMs = endpoint.includes('register') ? 30000 : 10000;
+
             const defaultOptions = {
                 headers: {
                     'Content-Type': 'application/json',
@@ -777,9 +781,22 @@
 
             console.log('Making API request to:', url);
             console.log('Request options:', finalOptions);
+            console.log('Timeout set to:', timeoutMs, 'ms');
+
+            // Create timeout controller
+            const controller = new AbortController();
+            finalOptions.signal = controller.signal;
+
+            const timeoutId = setTimeout(() => {
+                console.warn('Request timeout reached, aborting...');
+                controller.abort();
+            }, timeoutMs);
 
             try {
                 const response = await fetch(url, finalOptions);
+                clearTimeout(timeoutId);
+
+                console.log('Response received!');
                 console.log('Response status:', response.status);
                 console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
@@ -799,10 +816,13 @@
                 return result;
 
             } catch (error) {
+                clearTimeout(timeoutId);
                 console.error('API request failed:', error);
 
                 // Handle different types of errors
-                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                if (error.name === 'AbortError') {
+                    throw new Error(`Request timeout: Server took longer than ${timeoutMs/1000} seconds to respond. This might indicate the operation is still processing.`);
+                } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
                     throw new Error('Network error: Unable to reach server');
                 } else if (error.message.includes('CORS')) {
                     throw new Error('CORS error: Cross-origin request blocked');
@@ -915,15 +935,24 @@
             } catch (error) {
                 console.error('Registration error details:', error);
 
-                // More detailed error handling
-                if (error.message.includes('fetch')) {
-                    showError('Network error: Unable to connect to server. Please check your internet connection and try again.');
+                // Special handling for timeout during registration
+                if (error.message.includes('timeout')) {
+                    // The request timed out, but the registration might have succeeded
+                    hideModal('registerModal');
+                    showEmailVerificationMessage('Registration might have succeeded! If you receive a verification email, please click the link to complete registration. If not, try registering again in a few minutes.');
+                    return true; // Don't show error, assume success
+                } else if (error.message.includes('fetch')) {
+                    // Network error - could be timeout or connection issue
+                    hideModal('registerModal');
+                    showEmailVerificationMessage('Registration request sent! If you receive a verification email, please click the link to complete registration. If not received within 5 minutes, try registering again.');
+                    return true; // Don't show error for registration, assume it might have worked
                 } else if (error.message.includes('CORS')) {
                     showError('Connection error: Please refresh the page and try again.');
+                    return false;
                 } else {
                     showError(`Registration failed: ${error.message}`);
+                    return false;
                 }
-                return false;
             }
         }
 
