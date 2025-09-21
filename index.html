@@ -1059,15 +1059,15 @@
             overlay.style.display = 'block';
             overlay.innerHTML = `
                 <div class="modal">
-                    <div class="modal-header">📧 邮箱验证</div>
+                    <div class="modal-header">EMAIL VERIFICATION</div>
                     <div style="margin-bottom: 20px; color: var(--white); line-height: 1.6;">
                         <p>${message}</p>
                         <p style="margin-top: 15px; color: var(--light-gray); font-size: 0.9rem;">
-                            没有收到邮件？请检查垃圾邮件文件夹
+                            Didn't receive the email? Please check your spam folder
                         </p>
                     </div>
                     <button onclick="this.parentElement.parentElement.remove()" class="pixel-btn" style="width: 100%;">
-                        好的
+                        OK
                     </button>
                 </div>
             `;
@@ -1339,26 +1339,42 @@
             const username = document.getElementById('registerUsername').value;
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
 
             // 客户端验证
             if (username.length < 3 || username.length > 20) {
-                showError('用户名长度必须在3-20个字符之间');
+                showError('Username must be between 3-20 characters');
                 return;
             }
 
             if (password.length < 6) {
-                showError('密码长度至少为6个字符');
+                showError('Password must be at least 6 characters');
                 return;
             }
 
             // 简单的邮箱格式验证
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                showError('请输入有效的邮箱地址');
+                showError('Please enter a valid email address');
                 return;
             }
 
-            await register(username, email, password);
+            // Disable button and show loading state
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'REGISTERING...';
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+
+            try {
+                await register(username, email, password);
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            }
         });
 
         // Real-time email validation

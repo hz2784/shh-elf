@@ -361,21 +361,21 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     if len(user_data.username) < 3 or len(user_data.username) > 20:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="用户名长度必须在3-20个字符之间"
+            detail="Username must be between 3-20 characters"
         )
 
     # 验证密码强度
     if len(user_data.password) < 6:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="密码长度至少为6个字符"
+            detail="Password must be at least 6 characters"
         )
 
     # 检查用户名是否已存在
     if get_user_by_username(db, user_data.username):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="用户名已存在"
+            detail="Username already exists"
         )
 
     # 检查邮箱是否已存在
@@ -438,7 +438,7 @@ async def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
     if not user or not user.verify_password(login_data.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误"
+            detail="Incorrect username or password"
         )
 
     # 检查邮箱是否已验证
