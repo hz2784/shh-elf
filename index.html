@@ -1121,10 +1121,47 @@
             }
         }
 
+        // Check URL parameters for auto-login from email verification
+        function checkAutoLogin() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const userData = urlParams.get('user');
+
+            if (token && userData) {
+                try {
+                    const user = JSON.parse(decodeURIComponent(userData));
+                    authToken = token;
+                    currentUser = user;
+
+                    localStorage.setItem('authToken', token);
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+
+                    updateUserDisplay();
+                    console.log('Auto-login successful from email verification:', user.username);
+
+                    // Show success message
+                    showEmailVerificationMessage(`Welcome back, ${user.username}! Your email has been verified and you are now logged in.`);
+
+                    // Clean URL without refreshing page
+                    window.history.replaceState(null, null, window.location.pathname);
+
+                    return true;
+                } catch (e) {
+                    console.error('Auto-login failed:', e);
+                }
+            }
+            return false;
+        }
+
         // Initialize
         window.onload = function() {
             checkAuth(); // Check for saved authentication
-            checkUrlHash(); // Check if redirected for login/register
+
+            // Check for auto-login from email verification (higher priority)
+            if (!checkAutoLogin()) {
+                checkUrlHash(); // Check if redirected for login/register only if no auto-login
+            }
+
             console.log('SHH-ELF.EXE MAIN TERMINAL LOADED');
             console.log('SYSTEM MODULES: READY');
         };

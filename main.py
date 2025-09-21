@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 import hashlib
 from pathlib import Path
 from datetime import timedelta
+import urllib.parse
+import json
 
 from database import (
     create_tables, get_db, get_user_by_email, get_user_by_username,
@@ -563,7 +565,11 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
         )
 
     if user.is_email_verified == 'true':
-        # 已经验证过，直接重定向 - 默认英文，可切换中文
+        # 已经验证过，生成访问令牌并自动登录
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.username}, expires_delta=access_token_expires
+        )
         html_content = """
         <!DOCTYPE html>
         <html>
@@ -619,6 +625,23 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
 
                 window.onload = function() {
                     updateLanguage();
+
+                    // Auto-login user with token
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const token = urlParams.get('token');
+                    const userData = urlParams.get('user');
+
+                    if (token && userData) {
+                        try {
+                            const user = JSON.parse(decodeURIComponent(userData));
+                            localStorage.setItem('authToken', token);
+                            localStorage.setItem('currentUser', JSON.stringify(user));
+                            console.log('Auto-login successful:', user.username);
+                        } catch (e) {
+                            console.error('Auto-login failed:', e);
+                        }
+                    }
+
                     setTimeout(function() {
                         window.location.href = 'https://hz2784.github.io/shh-elf/';
                     }, 3000);
@@ -638,10 +661,31 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
         </body>
         </html>
         """
+
+        # 准备用户数据
+        user_data = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "created_at": user.created_at.isoformat()
+        }
+
+        # 在HTML中添加token和用户数据参数
+        html_content = html_content.replace(
+            'https://hz2784.github.io/shh-elf/',
+            f'https://hz2784.github.io/shh-elf/?token={access_token}&user={urllib.parse.quote(json.dumps(user_data))}'
+        )
+
         return HTMLResponse(content=html_content)
 
     # 验证邮箱
     verify_user_email(db, user)
+
+    # 为新验证的用户生成访问令牌
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
 
     # 发送欢迎邮件
     send_welcome_email(user.email, user.username)
@@ -720,6 +764,23 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
 
             window.onload = function() {
                 updateLanguage();
+
+                // Auto-login user with token
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                const userData = urlParams.get('user');
+
+                if (token && userData) {
+                    try {
+                        const user = JSON.parse(decodeURIComponent(userData));
+                        localStorage.setItem('authToken', token);
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        console.log('Auto-login successful:', user.username);
+                    } catch (e) {
+                        console.error('Auto-login failed:', e);
+                    }
+                }
+
                 startRedirect();
             };
         </script>
@@ -744,6 +805,21 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
     </body>
     </html>
     """
+
+    # 准备用户数据
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "created_at": user.created_at.isoformat()
+    }
+
+    # 在HTML中添加token和用户数据参数
+    html_content = html_content.replace(
+        'https://hz2784.github.io/shh-elf/',
+        f'https://hz2784.github.io/shh-elf/?token={access_token}&user={urllib.parse.quote(json.dumps(user_data))}'
+    )
+
     return HTMLResponse(content=html_content)
 
 @app.post("/api/resend-verification")
