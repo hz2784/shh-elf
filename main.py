@@ -140,6 +140,36 @@ def text_to_speech(text: str, filename: str, language: str) -> str:
     else:
         return elevenlabs_text_to_speech(text, filename)
 
+def enhance_text_with_ssml(text: str) -> str:
+    """智能增强中文文本的SSML标记，改善断句和语调"""
+    import re
+
+    # 替换标点符号为带停顿的SSML标记
+    enhanced = text
+
+    # 在句号、叹号、问号后添加长停顿
+    enhanced = re.sub(r'([。！？])', r'\1<break time="800ms"/>', enhanced)
+
+    # 在逗号、顿号后添加中等停顿
+    enhanced = re.sub(r'([，、])', r'\1<break time="400ms"/>', enhanced)
+
+    # 在分号、冒号后添加短停顿
+    enhanced = re.sub(r'([；：])', r'\1<break time="600ms"/>', enhanced)
+
+    # 强调重要词汇（书名、人名等）
+    enhanced = re.sub(r'《([^》]+)》', r'<emphasis level="moderate">《\1》</emphasis>', enhanced)
+
+    # 为语气词添加适当的语调变化
+    enhanced = re.sub(r'(哇|哦|呀|啊|嗯|哈哈)', r'<prosody pitch="+10%" rate="0.8">\1</prosody>', enhanced)
+
+    # 为感叹词添加情感表达
+    enhanced = re.sub(r'(太棒了|真的|绝对|非常|特别)', r'<emphasis level="strong">\1</emphasis>', enhanced)
+
+    # 为数字添加清晰发音
+    enhanced = re.sub(r'(\d+)', r'<say-as interpret-as="cardinal">\1</say-as>', enhanced)
+
+    return enhanced
+
 def azure_text_to_speech(text: str, filename: str, voice_name: str = "zh-CN-XiaoxiaoNeural") -> str:
     """使用Azure Speech Services生成中文语音 - 专业中文声优"""
 
@@ -156,11 +186,14 @@ def azure_text_to_speech(text: str, filename: str, voice_name: str = "zh-CN-Xiao
         "X-Microsoft-OutputFormat": "audio-24khz-160kbitrate-mono-mp3"
     }
 
-    # SSML格式的语音合成请求
+    # 智能SSML格式处理 - 优化断句和语调
+    enhanced_text = enhance_text_with_ssml(text)
     ssml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-CN">
     <voice name="{voice_name}">
-        {text}
+        <prosody rate="0.9" pitch="+5%">
+            {enhanced_text}
+        </prosody>
     </voice>
 </speak>"""
 
