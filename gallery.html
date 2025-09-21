@@ -87,6 +87,42 @@
             letter-spacing: 2px;
         }
 
+        .terminal-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .user-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-right: 20px;
+        }
+
+        .user-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 8px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .username-display {
+            color: var(--primary-green);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
         .nav-controls {
             display: flex;
             gap: 15px;
@@ -389,10 +425,22 @@
     <div class="terminal-header">
         <div class="terminal-bar">
             <span class="terminal-title">📚 BOOK TALK GALLERY :: SHH-ELF.EXE</span>
-            <div class="nav-controls">
-                <a href="index.html" class="nav-btn">🏠 HOME</a>
-                <a href="playground.html" class="nav-btn">🎮 PLAYGROUND</a>
-                <a href="gallery.html" class="nav-btn">📚 GALLERY</a>
+            <div class="terminal-controls">
+                <div class="user-controls" id="userControls">
+                    <div id="loggedOutControls">
+                        <button class="user-btn" onclick="showModal('loginModal')">LOGIN</button>
+                        <button class="user-btn" onclick="showModal('registerModal')">REGISTER</button>
+                    </div>
+                    <div id="loggedInControls" style="display: none;">
+                        <span class="username-display" id="usernameDisplay">USER: LOADING...</span>
+                        <button class="user-btn" onclick="logout()">LOGOUT</button>
+                    </div>
+                </div>
+                <div class="nav-controls">
+                    <a href="index.html" class="nav-btn">🏠 HOME</a>
+                    <a href="gallery.html" class="nav-btn">📚 GALLERY</a>
+                    <a href="playground.html" class="nav-btn">🎮 PLAYGROUND</a>
+                </div>
             </div>
         </div>
     </div>
@@ -569,8 +617,60 @@
             };
         }
 
+        // User management (shared across pages)
+        let currentUser = null;
+        let authToken = null;
+
+        // Check for saved authentication
+        function checkAuth() {
+            const savedToken = localStorage.getItem('authToken');
+            const savedUser = localStorage.getItem('currentUser');
+
+            if (savedToken && savedUser) {
+                authToken = savedToken;
+                currentUser = JSON.parse(savedUser);
+                updateUserDisplay();
+            }
+        }
+
+        // Update user display
+        function updateUserDisplay() {
+            const loggedOutControls = document.getElementById('loggedOutControls');
+            const loggedInControls = document.getElementById('loggedInControls');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+
+            if (currentUser) {
+                loggedOutControls.style.display = 'none';
+                loggedInControls.style.display = 'flex';
+                usernameDisplay.textContent = `USER: ${currentUser.username.toUpperCase()}`;
+            } else {
+                loggedOutControls.style.display = 'flex';
+                loggedInControls.style.display = 'none';
+            }
+        }
+
+        // Redirect to main page for login/register
+        function showModal(modalId) {
+            window.location.href = `index.html#${modalId}`;
+        }
+
+        function hideModal(modalId) {
+            // Not needed here since modals are on main page
+        }
+
+        // Logout function
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            updateUserDisplay();
+            console.log('Logged out successfully!');
+        }
+
         // Initialize
         window.onload = function() {
+            checkAuth(); // Check for saved authentication
             loadBookGallery();
             console.log('Book Talk Gallery loaded');
         };

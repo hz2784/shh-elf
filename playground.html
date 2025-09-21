@@ -90,8 +90,32 @@
 
         .terminal-controls {
             display: flex;
-            gap: 8px;
+            gap: 15px;
             align-items: center;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 12px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
         }
 
         .user-controls {
@@ -530,9 +554,11 @@
                         <button class="user-btn" onclick="logout()">LOGOUT</button>
                     </div>
                 </div>
-                <div class="control-btn"></div>
-                <div class="control-btn"></div>
-                <div class="control-btn"></div>
+                <div class="nav-controls">
+                    <a href="index.html" class="nav-btn">🏠 HOME</a>
+                    <a href="gallery.html" class="nav-btn">📚 GALLERY</a>
+                    <a href="playground.html" class="nav-btn">🎮 PLAYGROUND</a>
+                </div>
             </div>
         </div>
     </div>
