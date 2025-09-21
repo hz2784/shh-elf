@@ -527,34 +527,77 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
         )
 
     if user.is_email_verified == 'true':
-        # 已经验证过，直接重定向
+        # 已经验证过，直接重定向 - 默认英文，可切换中文
         html_content = """
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>邮箱验证 - SHH-ELF</title>
+            <title>Email Already Verified - SHH-ELF</title>
             <style>
                 body { font-family: 'Courier New', monospace; background: #000; color: #00ff00; text-align: center; padding: 50px; }
                 .container { max-width: 600px; margin: 0 auto; border: 2px solid #00ff00; padding: 40px; background: #111; }
                 .header { font-size: 24px; margin-bottom: 30px; text-transform: uppercase; }
                 .message { margin-bottom: 30px; line-height: 1.6; }
-                .button { display: inline-block; background: #00ff00; color: #000; padding: 15px 30px; text-decoration: none; text-transform: uppercase; font-weight: bold; }
+                .button { display: inline-block; background: #00ff00; color: #000; padding: 15px 30px; text-decoration: none; text-transform: uppercase; font-weight: bold; margin: 10px; cursor: pointer; border: none; font-family: 'Courier New', monospace; }
+                .button:hover { background: #008000; }
+                .lang-toggle { position: absolute; top: 20px; right: 20px; background: transparent; border: 2px solid #00ff00; color: #00ff00; padding: 8px 16px; cursor: pointer; font-family: 'Courier New', monospace; }
+                .lang-toggle:hover { background: #00ff00; color: #000; }
             </style>
             <script>
-                setTimeout(function() {
-                    window.location.href = 'https://hz2784.github.io/shh-elf/';
-                }, 3000);
+                let currentLang = 'en';
+
+                const translations = {
+                    en: {
+                        title: 'Email Already Verified - SHH-ELF',
+                        header: '✅ Email Already Verified',
+                        message1: 'Your email has already been verified!',
+                        message2: 'Redirecting to SHH-ELF in 3 seconds...',
+                        button: 'Go to SHH-ELF Now',
+                        langToggle: '中文'
+                    },
+                    zh: {
+                        title: '邮箱已验证 - SHH-ELF',
+                        header: '✅ 邮箱已验证',
+                        message1: '你的邮箱已经验证过了！',
+                        message2: '3秒后自动跳转到 SHH-ELF...',
+                        button: '立即前往 SHH-ELF',
+                        langToggle: 'English'
+                    }
+                };
+
+                function updateLanguage() {
+                    const t = translations[currentLang];
+                    document.title = t.title;
+                    document.getElementById('header').textContent = t.header;
+                    document.getElementById('message1').textContent = t.message1;
+                    document.getElementById('message2').textContent = t.message2;
+                    document.getElementById('button').textContent = t.button;
+                    document.getElementById('langToggle').textContent = t.langToggle;
+                }
+
+                function toggleLanguage() {
+                    currentLang = currentLang === 'en' ? 'zh' : 'en';
+                    updateLanguage();
+                }
+
+                window.onload = function() {
+                    updateLanguage();
+                    setTimeout(function() {
+                        window.location.href = 'https://hz2784.github.io/shh-elf/';
+                    }, 3000);
+                };
             </script>
         </head>
         <body>
+            <button class="lang-toggle" id="langToggle" onclick="toggleLanguage()">中文</button>
             <div class="container">
-                <div class="header">✅ 邮箱已验证</div>
+                <div class="header" id="header">✅ Email Already Verified</div>
                 <div class="message">
-                    <p>你的邮箱已经验证过了！</p>
-                    <p>3秒后自动跳转到 SHH-ELF...</p>
+                    <p id="message1">Your email has already been verified!</p>
+                    <p id="message2">Redirecting to SHH-ELF in 3 seconds...</p>
                 </div>
-                <a href="https://hz2784.github.io/shh-elf/" class="button">立即前往 SHH-ELF</a>
+                <a href="https://hz2784.github.io/shh-elf/" class="button" id="button">Go to SHH-ELF Now</a>
             </div>
         </body>
         </html>
@@ -567,42 +610,100 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
     # 发送欢迎邮件
     send_welcome_email(user.email, user.username)
 
-    # 返回成功页面
+    # 返回成功页面 - 默认英文，可切换中文
     html_content = """
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
-        <title>邮箱验证成功 - SHH-ELF</title>
+        <title>Email Verification Success - SHH-ELF</title>
         <style>
             body { font-family: 'Courier New', monospace; background: #000; color: #00ff00; text-align: center; padding: 50px; }
             .container { max-width: 600px; margin: 0 auto; border: 2px solid #00ff00; padding: 40px; background: #111; }
             .header { font-size: 24px; margin-bottom: 30px; text-transform: uppercase; }
             .message { margin-bottom: 30px; line-height: 1.6; }
-            .button { display: inline-block; background: #00ff00; color: #000; padding: 15px 30px; text-decoration: none; text-transform: uppercase; font-weight: bold; }
+            .button { display: inline-block; background: #00ff00; color: #000; padding: 15px 30px; text-decoration: none; text-transform: uppercase; font-weight: bold; margin: 10px; cursor: pointer; border: none; font-family: 'Courier New', monospace; }
+            .button:hover { background: #008000; }
             .success { color: #00ff00; font-size: 48px; margin-bottom: 20px; }
+            .lang-toggle { position: absolute; top: 20px; right: 20px; background: transparent; border: 2px solid #00ff00; color: #00ff00; padding: 8px 16px; cursor: pointer; font-family: 'Courier New', monospace; }
+            .lang-toggle:hover { background: #00ff00; color: #000; }
         </style>
         <script>
-            setTimeout(function() {
-                window.location.href = 'https://hz2784.github.io/shh-elf/';
-            }, 5000);
+            let currentLang = 'en';
+            let redirectTimer;
+
+            const translations = {
+                en: {
+                    title: 'Email Verification Success - SHH-ELF',
+                    header: 'Email Verification Successful!',
+                    welcome: 'Welcome to SHH-ELF!',
+                    feature1: 'Save recommendation history',
+                    feature2: 'View all recommendations',
+                    feature3: 'Share personalized content',
+                    redirect: 'Redirecting in 5 seconds...',
+                    button: 'Start Using SHH-ELF',
+                    langToggle: '中文'
+                },
+                zh: {
+                    title: '邮箱验证成功 - SHH-ELF',
+                    header: '邮箱验证成功！',
+                    welcome: '欢迎来到 SHH-ELF！',
+                    feature1: '保存推荐历史',
+                    feature2: '查看所有推荐',
+                    feature3: '分享个性化内容',
+                    redirect: '5秒后自动跳转...',
+                    button: '开始使用 SHH-ELF',
+                    langToggle: 'English'
+                }
+            };
+
+            function updateLanguage() {
+                const t = translations[currentLang];
+                document.title = t.title;
+                document.getElementById('header').textContent = t.header;
+                document.getElementById('welcome').textContent = t.welcome;
+                document.getElementById('intro').textContent = currentLang === 'en' ? 'You can now enjoy full features:' : '现在你可以享受完整功能：';
+                document.getElementById('feature1').textContent = t.feature1;
+                document.getElementById('feature2').textContent = t.feature2;
+                document.getElementById('feature3').textContent = t.feature3;
+                document.getElementById('redirect').textContent = t.redirect;
+                document.getElementById('button').textContent = t.button;
+                document.getElementById('langToggle').textContent = t.langToggle;
+            }
+
+            function toggleLanguage() {
+                currentLang = currentLang === 'en' ? 'zh' : 'en';
+                updateLanguage();
+            }
+
+            function startRedirect() {
+                redirectTimer = setTimeout(function() {
+                    window.location.href = 'https://hz2784.github.io/shh-elf/';
+                }, 5000);
+            }
+
+            window.onload = function() {
+                updateLanguage();
+                startRedirect();
+            };
         </script>
     </head>
     <body>
+        <button class="lang-toggle" id="langToggle" onclick="toggleLanguage()">中文</button>
         <div class="container">
             <div class="success">🎉</div>
-            <div class="header">邮箱验证成功！</div>
+            <div class="header" id="header">Email Verification Successful!</div>
             <div class="message">
-                <p>欢迎来到 SHH-ELF！</p>
-                <p>现在你可以享受完整功能：</p>
-                <ul style="text-align: left; max-width: 300px; margin: 20px auto;">
-                    <li>保存推荐历史</li>
-                    <li>查看所有推荐</li>
-                    <li>分享个性化内容</li>
+                <p id="welcome">Welcome to SHH-ELF!</p>
+                <p id="intro">You can now enjoy full features:</p>
+                <ul style="text-align: left; max-width: 350px; margin: 20px auto;">
+                    <li id="feature1">Save recommendation history</li>
+                    <li id="feature2">View all recommendations</li>
+                    <li id="feature3">Share personalized content</li>
                 </ul>
-                <p style="margin-top: 30px;">5秒后自动跳转...</p>
+                <p id="redirect" style="margin-top: 30px;">Redirecting in 5 seconds...</p>
             </div>
-            <a href="https://hz2784.github.io/shh-elf/" class="button">开始使用 SHH-ELF</a>
+            <a href="https://hz2784.github.io/shh-elf/" class="button" id="button">Start Using SHH-ELF</a>
         </div>
     </body>
     </html>
