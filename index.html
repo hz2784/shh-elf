@@ -91,6 +91,37 @@
         .terminal-controls {
             display: flex;
             gap: 8px;
+            align-items: center;
+        }
+
+        .user-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-right: 20px;
+        }
+
+        .user-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 8px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .username-display {
+            color: var(--primary-green);
+            font-size: 12px;
+            text-transform: uppercase;
         }
         
         .control-btn {
@@ -501,6 +532,103 @@
             z-index: -1;
             opacity: 0.1;
         }
+
+        /* Modal styles for login/register */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-dark);
+            border: 3px solid var(--primary-green);
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            color: var(--primary-green);
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--primary-green);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .history-container {
+            display: none;
+            margin: 40px 20px;
+            border: 3px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 30px;
+        }
+
+        .history-header {
+            text-align: center;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: var(--primary-green);
+        }
+
+        .history-item {
+            border: 2px solid var(--light-gray);
+            background: var(--bg-black);
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .history-book-title {
+            color: var(--primary-green);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        .history-date {
+            color: var(--light-gray);
+            font-size: 0.9rem;
+        }
+
+        .history-details {
+            color: var(--white);
+            margin-bottom: 10px;
+        }
+
+        .history-audio {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -509,6 +637,17 @@
         <div class="terminal-bar">
             <span class="terminal-title">SHH-ELF.EXE - READING REVOLUTION TERMINAL</span>
             <div class="terminal-controls">
+                <div class="user-controls" id="userControls">
+                    <div id="loggedOutControls">
+                        <button class="user-btn" onclick="showModal('loginModal')">LOGIN</button>
+                        <button class="user-btn" onclick="showModal('registerModal')">REGISTER</button>
+                    </div>
+                    <div id="loggedInControls" style="display: none;">
+                        <span class="username-display" id="usernameDisplay">USER: LOADING...</span>
+                        <button class="user-btn" onclick="showHistory()">HISTORY</button>
+                        <button class="user-btn" onclick="logout()">LOGOUT</button>
+                    </div>
+                </div>
                 <div class="control-btn"></div>
                 <div class="control-btn"></div>
                 <div class="control-btn"></div>
@@ -697,6 +836,51 @@
                 </div>
             </div>
         </section>
+
+        <!-- User History Section -->
+        <section id="history" class="history-container">
+            <div class="history-header">MY RECOMMENDATION HISTORY</div>
+            <div id="historyContent">
+                <div class="loading-text">Loading your recommendations...</div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="hideModal('loginModal')">&times;</button>
+            <div class="modal-header">LOGIN</div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="text" id="loginUsername" class="form-input" placeholder="USERNAME" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPassword" class="form-input" placeholder="PASSWORD" required>
+                </div>
+                <button type="submit" class="pixel-btn" style="width: 100%;">LOGIN</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="hideModal('registerModal')">&times;</button>
+            <div class="modal-header">REGISTER</div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="registerUsername" class="form-input" placeholder="USERNAME" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="registerEmail" class="form-input" placeholder="EMAIL" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="registerPassword" class="form-input" placeholder="PASSWORD" required>
+                </div>
+                <button type="submit" class="pixel-btn" style="width: 100%;">REGISTER</button>
+            </form>
+        </div>
     </div>
 
     <!-- Language Switcher -->
@@ -707,9 +891,205 @@
     <script>
         // API Configuration
         const API_BASE_URL = 'https://shh-elf.onrender.com';  // 你的 Render 后端 URL
-        
+
         console.log('API Base URL:', API_BASE_URL);
         console.log('Frontend loaded - Y2K PIXEL MODE ACTIVATED');
+
+        // User management
+        let currentUser = null;
+        let authToken = null;
+
+        // Check for saved authentication
+        function checkAuth() {
+            const savedToken = localStorage.getItem('authToken');
+            const savedUser = localStorage.getItem('currentUser');
+
+            if (savedToken && savedUser) {
+                authToken = savedToken;
+                currentUser = JSON.parse(savedUser);
+                updateUserDisplay();
+            }
+        }
+
+        // Update user display
+        function updateUserDisplay() {
+            const loggedOutControls = document.getElementById('loggedOutControls');
+            const loggedInControls = document.getElementById('loggedInControls');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+
+            if (currentUser) {
+                loggedOutControls.style.display = 'none';
+                loggedInControls.style.display = 'flex';
+                usernameDisplay.textContent = `USER: ${currentUser.username.toUpperCase()}`;
+            } else {
+                loggedOutControls.style.display = 'flex';
+                loggedInControls.style.display = 'none';
+            }
+        }
+
+        // Modal management
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // API helper function
+        async function apiRequest(endpoint, options = {}) {
+            const url = `${API_BASE_URL}${endpoint}`;
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            };
+
+            if (authToken) {
+                defaultOptions.headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const finalOptions = { ...defaultOptions, ...options };
+            if (options.headers) {
+                finalOptions.headers = { ...defaultOptions.headers, ...options.headers };
+            }
+
+            const response = await fetch(url, finalOptions);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return response.json();
+        }
+
+        // Login function
+        async function login(username, password) {
+            try {
+                const response = await apiRequest('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+
+                authToken = response.access_token;
+                currentUser = response.user;
+
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                updateUserDisplay();
+                hideModal('loginModal');
+                showSuccess('Login successful!');
+
+                return true;
+            } catch (error) {
+                showError(`Login failed: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Register function
+        async function register(username, email, password) {
+            try {
+                const response = await apiRequest('/api/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                authToken = response.access_token;
+                currentUser = response.user;
+
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                updateUserDisplay();
+                hideModal('registerModal');
+                showSuccess('Registration successful!');
+
+                return true;
+            } catch (error) {
+                showError(`Registration failed: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Logout function
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            updateUserDisplay();
+            hideHistory();
+            showSuccess('Logged out successfully!');
+        }
+
+        // Show/hide history
+        function showHistory() {
+            if (!currentUser) {
+                showError('Please login to view your history');
+                return;
+            }
+
+            const historyContainer = document.getElementById('history');
+            historyContainer.style.display = 'block';
+            loadUserHistory();
+            historyContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideHistory() {
+            document.getElementById('history').style.display = 'none';
+        }
+
+        // Load user history
+        async function loadUserHistory() {
+            const historyContent = document.getElementById('historyContent');
+            historyContent.innerHTML = '<div class="loading-text">Loading your recommendations...</div>';
+
+            try {
+                const recommendations = await apiRequest('/api/my-recommendations');
+
+                if (recommendations.length === 0) {
+                    historyContent.innerHTML = '<div style="text-align: center; color: var(--light-gray); padding: 40px;">No recommendations yet. Create your first one below!</div>';
+                    return;
+                }
+
+                historyContent.innerHTML = recommendations.map(rec => `
+                    <div class="history-item">
+                        <div class="history-item-header">
+                            <div class="history-book-title">${rec.book_title}</div>
+                            <div class="history-date">${new Date(rec.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <div class="history-details">
+                            <strong>For:</strong> ${rec.recipient_name} (${rec.relationship}) |
+                            <strong>Language:</strong> ${rec.language}
+                        </div>
+                        <div class="history-audio">
+                            <audio controls class="audio-player" style="width: 100%;">
+                                <source src="${API_BASE_URL}/${rec.audio_path}" type="audio/mpeg">
+                                Your browser does not support audio playback.
+                            </audio>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button onclick="copyToClipboard('${API_BASE_URL}/share/${rec.share_id}')" class="pixel-btn" style="font-size: 0.9rem;">
+                                Copy Share Link
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                historyContent.innerHTML = `<div style="text-align: center; color: #ff0000; padding: 40px;">Failed to load history: ${error.message}</div>`;
+            }
+        }
+
+        // Success message function
+        function showSuccess(message) {
+            console.log('Success:', message);
+            // You could add a success notification here
+        }
 
         // Matrix Rain Effect
         function initMatrix() {
@@ -880,7 +1260,23 @@
             }, 5000);
         }
 
-        // Form submission
+        // Form event listeners
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            await login(username, password);
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            await register(username, email, password);
+        });
+
+        // Modified recommendation form submission to include auth headers
         document.getElementById('recommendationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -909,13 +1305,20 @@
             try {
                 console.log('Sending request to:', `${API_BASE_URL}/api/generate-recommendation`);
                 console.log('Form data:', formData);
-                
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                };
+
+                // Add auth header if user is logged in
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+
                 const response = await fetch(`${API_BASE_URL}/api/generate-recommendation`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
+                    headers: headers,
                     body: JSON.stringify(formData)
                 });
                 
@@ -956,9 +1359,14 @@
             }
         });
         
-        function copyToClipboard() {
-            const shareUrlInput = document.getElementById('shareUrl');
-            const urlToCopy = shareUrlInput.value;
+        function copyToClipboard(customUrl = null) {
+            let urlToCopy;
+            if (customUrl) {
+                urlToCopy = customUrl;
+            } else {
+                const shareUrlInput = document.getElementById('shareUrl');
+                urlToCopy = shareUrlInput.value;
+            }
 
             // Try modern clipboard API first
             if (navigator.clipboard && window.isSecureContext) {
@@ -972,10 +1380,23 @@
             }
 
             function fallbackCopy() {
-                shareUrlInput.select();
-                shareUrlInput.setSelectionRange(0, 99999); // For mobile
+                if (!customUrl) {
+                    const shareUrlInput = document.getElementById('shareUrl');
+                    shareUrlInput.select();
+                    shareUrlInput.setSelectionRange(0, 99999); // For mobile
+                }
                 try {
-                    document.execCommand('copy');
+                    // Create temporary input for custom URLs
+                    if (customUrl) {
+                        const tempInput = document.createElement('input');
+                        tempInput.value = urlToCopy;
+                        document.body.appendChild(tempInput);
+                        tempInput.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempInput);
+                    } else {
+                        document.execCommand('copy');
+                    }
                     showCopySuccess();
                 } catch (err) {
                     console.error('Copy failed:', err);
@@ -1020,15 +1441,23 @@
         // Initialize
         window.onload = function() {
             updateLanguage();
+            checkAuth(); // Check for saved authentication
             console.log('Y2K PIXEL MODE ACTIVATED');
             console.log('API Base URL:', API_BASE_URL);
-            
+
             // Test API connection
             fetch(`${API_BASE_URL}/api/health`)
                 .then(response => response.json())
                 .then(data => console.log('Backend status:', data))
                 .catch(error => console.error('Backend connection failed:', error));
         };
+
+        // Modal click outside to close
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>

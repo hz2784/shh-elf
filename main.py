@@ -1,13 +1,27 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from fastapi.security import HTTPBearer
+from pydantic import BaseModel, EmailStr
+from sqlalchemy.orm import Session
+from typing import Optional, List
 import requests
 import os
 from dotenv import load_dotenv
 import hashlib
 from pathlib import Path
+from datetime import timedelta
+
+from database import (
+    create_tables, get_db, get_user_by_email, get_user_by_username,
+    create_user, create_user_recommendation, get_user_recommendations,
+    get_recommendation_by_share_id, User, UserRecommendation
+)
+from auth import (
+    create_access_token, get_current_user, get_current_user_optional,
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
 
 # 加载环境变量
 load_dotenv()
@@ -29,6 +43,9 @@ app.add_middleware(
 
 # 创建必要目录
 Path("audio").mkdir(exist_ok=True)
+
+# 创建数据库表
+create_tables()
 
 # 简单的内存存储来记录每个分享的语言信息
 share_language_store = {}
@@ -57,6 +74,37 @@ class RecommendationResponse(BaseModel):
     recommendation_text: str
     audio_path: str
     share_id: str
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    created_at: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserResponse
+
+class RecommendationHistoryResponse(BaseModel):
+    id: int
+    book_title: str
+    recipient_name: str
+    relationship: str
+    language: str
+    recommendation_text: str
+    audio_path: str
+    share_id: str
+    created_at: str
 
 # GPT生成推荐文本
 def generate_recommendation_text(book_title: str, recipient_name: str, relationship: str, interests: str, tone: str, language: str) -> str:
@@ -302,8 +350,110 @@ async def root():
         "frontend": "Please serve frontend separately"
     }
 
+@app.post("/api/register", response_model=Token)
+async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
+    """用户注册"""
+    # 检查用户名是否已存在
+    if get_user_by_username(db, user_data.username):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="用户名已存在"
+        )
+
+    # 检查邮箱是否已存在
+    if get_user_by_email(db, user_data.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="邮箱已存在"
+        )
+
+    # 创建新用户
+    user = create_user(db, user_data.username, user_data.email, user_data.password)
+
+    # 生成访问令牌
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "created_at": user.created_at.isoformat()
+        }
+    }
+
+@app.post("/api/login", response_model=Token)
+async def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
+    """用户登录"""
+    user = get_user_by_username(db, login_data.username)
+    if not user or not user.verify_password(login_data.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户名或密码错误"
+        )
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "created_at": user.created_at.isoformat()
+        }
+    }
+
+@app.get("/api/me", response_model=UserResponse)
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """获取当前用户信息"""
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "created_at": current_user.created_at.isoformat()
+    }
+
+@app.get("/api/my-recommendations", response_model=List[RecommendationHistoryResponse])
+async def get_my_recommendations(
+    skip: int = 0,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取用户的推荐历史"""
+    recommendations = get_user_recommendations(db, current_user.id, skip, limit)
+
+    return [
+        {
+            "id": rec.id,
+            "book_title": rec.book_title,
+            "recipient_name": rec.recipient_name,
+            "relationship": rec.relationship,
+            "language": rec.language,
+            "recommendation_text": rec.recommendation_text,
+            "audio_path": rec.audio_path,
+            "share_id": rec.share_id,
+            "created_at": rec.created_at.isoformat()
+        }
+        for rec in recommendations
+    ]
+
 @app.post("/api/generate-recommendation", response_model=RecommendationResponse)
-async def generate_recommendation(req: BookRecommendation):
+async def generate_recommendation(
+    req: BookRecommendation,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """生成书籍推荐API"""
     try:
         print(f"=== 处理推荐请求 ===")
@@ -338,6 +488,23 @@ async def generate_recommendation(req: BookRecommendation):
 
         # 存储分享的语言信息
         share_language_store[content_hash] = req.language
+
+        # 如果用户已登录，保存到数据库
+        if current_user:
+            create_user_recommendation(
+                db=db,
+                user_id=current_user.id,
+                book_title=req.book_title,
+                recipient_name=req.recipient_name,
+                relationship=req.relationship,
+                recipient_interests=req.recipient_interests,
+                tone=req.tone,
+                language=req.language,
+                dialect=req.dialect,
+                recommendation_text=recommendation_text,
+                audio_path=audio_path,
+                share_id=content_hash
+            )
 
         response = RecommendationResponse(
             success=True,
