@@ -143,15 +143,6 @@
             padding: 20px;
         }
         
-        /* ASCII Art Header */
-        .ascii-header {
-            text-align: center;
-            font-size: 12px;
-            line-height: 1;
-            margin: 20px 0;
-            white-space: pre;
-            color: var(--primary-green);
-        }
         
         /* Command Prompt Style */
         .cmd-line {
@@ -515,10 +506,6 @@
             .main-content {
                 padding: 10px;
             }
-            
-            .ascii-header {
-                font-size: 8px;
-            }
         }
         
         /* Matrix Rain Effect (Optional) */
@@ -660,17 +647,6 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <!-- ASCII Art Header -->
-        <div class="ascii-header">
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║          ███████╗██╗  ██╗██╗  ██╗      ███████╗██╗     ███████╗            ║
-║          ██╔════╝██║  ██║██║  ██║      ██╔════╝██║     ██╔════╝            ║
-║          ███████╗███████║███████║█████╗█████╗  ██║     █████╗              ║
-║          ╚════██║██╔══██║██╔══██║╚════╝██╔══╝  ██║     ██╔══╝              ║
-║          ███████║██║  ██║██║  ██║      ███████╗███████╗██║                 ║
-║          ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝      ╚══════╝╚══════╝╚═╝                 ║
-╚═══════════════════════════════════════════════════════════════════════════════╝
-        </div>
 
         <!-- Command Line Style Intro -->
         <div class="cmd-line">
@@ -870,13 +846,13 @@
             <div class="modal-header">REGISTER</div>
             <form id="registerForm">
                 <div class="form-group">
-                    <input type="text" id="registerUsername" class="form-input" placeholder="USERNAME" required>
+                    <input type="text" id="registerUsername" class="form-input" placeholder="USERNAME (3-20 characters)" required minlength="3" maxlength="20">
                 </div>
                 <div class="form-group">
                     <input type="email" id="registerEmail" class="form-input" placeholder="EMAIL" required>
                 </div>
                 <div class="form-group">
-                    <input type="password" id="registerPassword" class="form-input" placeholder="PASSWORD" required>
+                    <input type="password" id="registerPassword" class="form-input" placeholder="PASSWORD (min 6 characters)" required minlength="6">
                 </div>
                 <button type="submit" class="pixel-btn" style="width: 100%;">REGISTER</button>
             </form>
@@ -998,21 +974,57 @@
                     body: JSON.stringify({ username, email, password })
                 });
 
-                authToken = response.access_token;
-                currentUser = response.user;
+                if (response.email_sent) {
+                    // 邮件验证流程
+                    hideModal('registerModal');
+                    showEmailVerificationMessage(response.message);
+                } else {
+                    // 直接注册成功（邮件服务未配置）
+                    authToken = response.access_token;
+                    currentUser = response.user;
 
-                localStorage.setItem('authToken', authToken);
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-                updateUserDisplay();
-                hideModal('registerModal');
-                showSuccess('Registration successful!');
+                    updateUserDisplay();
+                    hideModal('registerModal');
+                    showSuccess(response.message || 'Registration successful!');
+                }
 
                 return true;
             } catch (error) {
                 showError(`Registration failed: ${error.message}`);
                 return false;
             }
+        }
+
+        // 显示邮箱验证消息
+        function showEmailVerificationMessage(message) {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.style.display = 'block';
+            overlay.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">📧 邮箱验证</div>
+                    <div style="margin-bottom: 20px; color: var(--white); line-height: 1.6;">
+                        <p>${message}</p>
+                        <p style="margin-top: 15px; color: var(--light-gray); font-size: 0.9rem;">
+                            没有收到邮件？请检查垃圾邮件文件夹
+                        </p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="pixel-btn" style="width: 100%;">
+                        好的
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // 5秒后自动关闭
+            setTimeout(() => {
+                if (overlay.parentElement) {
+                    overlay.remove();
+                }
+            }, 8000);
         }
 
         // Logout function
@@ -1273,6 +1285,25 @@
             const username = document.getElementById('registerUsername').value;
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
+
+            // 客户端验证
+            if (username.length < 3 || username.length > 20) {
+                showError('用户名长度必须在3-20个字符之间');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('密码长度至少为6个字符');
+                return;
+            }
+
+            // 简单的邮箱格式验证
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showError('请输入有效的邮箱地址');
+                return;
+            }
+
             await register(username, email, password);
         });
 

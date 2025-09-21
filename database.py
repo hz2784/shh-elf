@@ -29,6 +29,8 @@ class User(Base):
     username = Column(String(50), unique=True, index=True, nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
+    is_email_verified = Column(String(10), default='false', nullable=False)
+    email_verification_token = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     def verify_password(self, password: str) -> bool:
@@ -128,3 +130,19 @@ def get_recommendation_by_share_id(db: Session, share_id: str):
     return db.query(UserRecommendation).filter(
         UserRecommendation.share_id == share_id
     ).first()
+
+def get_user_by_verification_token(db: Session, token: str):
+    return db.query(User).filter(User.email_verification_token == token).first()
+
+def verify_user_email(db: Session, user: User):
+    user.is_email_verified = 'true'
+    user.email_verification_token = None
+    db.commit()
+    db.refresh(user)
+    return user
+
+def update_verification_token(db: Session, user: User, token: str):
+    user.email_verification_token = token
+    db.commit()
+    db.refresh(user)
+    return user

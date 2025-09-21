@@ -16,11 +16,15 @@ from datetime import timedelta
 from database import (
     create_tables, get_db, get_user_by_email, get_user_by_username,
     create_user, create_user_recommendation, get_user_recommendations,
-    get_recommendation_by_share_id, User, UserRecommendation
+    get_recommendation_by_share_id, User, UserRecommendation,
+    get_user_by_verification_token, verify_user_email, update_verification_token
 )
 from auth import (
     create_access_token, get_current_user, get_current_user_optional,
     ACCESS_TOKEN_EXPIRE_MINUTES
+)
+from email_service import (
+    generate_verification_token, send_verification_email, send_welcome_email
 )
 
 # 加载环境变量
@@ -353,6 +357,20 @@ async def root():
 @app.post("/api/register", response_model=Token)
 async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     """用户注册"""
+    # 验证用户名长度和格式
+    if len(user_data.username) < 3 or len(user_data.username) > 20:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="用户名长度必须在3-20个字符之间"
+        )
+
+    # 验证密码强度
+    if len(user_data.password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="密码长度至少为6个字符"
+        )
+
     # 检查用户名是否已存在
     if get_user_by_username(db, user_data.username):
         raise HTTPException(
@@ -370,22 +388,40 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     # 创建新用户
     user = create_user(db, user_data.username, user_data.email, user_data.password)
 
-    # 生成访问令牌
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
+    # 生成邮箱验证token
+    verification_token = generate_verification_token()
+    update_verification_token(db, user, verification_token)
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "created_at": user.created_at.isoformat()
+    # 发送验证邮件
+    email_sent = send_verification_email(user.email, user.username, verification_token)
+
+    if email_sent:
+        return {
+            "success": True,
+            "message": "注册成功！请检查你的邮箱并点击验证链接完成注册。",
+            "email_sent": True,
+            "user_id": user.id
         }
-    }
+    else:
+        # 如果邮件发送失败，直接验证用户（开发环境或邮件服务未配置）
+        verify_user_email(db, user)
+
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.username}, expires_delta=access_token_expires
+        )
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "created_at": user.created_at.isoformat()
+            },
+            "message": "注册成功！（邮件服务未配置，已自动验证）"
+        }
 
 @app.post("/api/login", response_model=Token)
 async def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
@@ -395,6 +431,13 @@ async def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误"
+        )
+
+    # 检查邮箱是否已验证
+    if user.is_email_verified != 'true':
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="请先验证你的邮箱地址。检查你的邮箱中的验证链接。"
         )
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -447,6 +490,130 @@ async def get_my_recommendations(
         }
         for rec in recommendations
     ]
+
+@app.get("/api/verify-email")
+async def verify_email(token: str, db: Session = Depends(get_db)):
+    """邮箱验证端点"""
+    user = get_user_by_verification_token(db, token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="无效的验证链接或链接已过期"
+        )
+
+    if user.is_email_verified == 'true':
+        # 已经验证过，直接重定向
+        html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>邮箱验证 - SHH-ELF</title>
+            <style>
+                body { font-family: 'Courier New', monospace; background: #000; color: #00ff00; text-align: center; padding: 50px; }
+                .container { max-width: 600px; margin: 0 auto; border: 2px solid #00ff00; padding: 40px; background: #111; }
+                .header { font-size: 24px; margin-bottom: 30px; text-transform: uppercase; }
+                .message { margin-bottom: 30px; line-height: 1.6; }
+                .button { display: inline-block; background: #00ff00; color: #000; padding: 15px 30px; text-decoration: none; text-transform: uppercase; font-weight: bold; }
+            </style>
+            <script>
+                setTimeout(function() {
+                    window.location.href = 'https://hz2784.github.io/shh-elf/';
+                }, 3000);
+            </script>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">✅ 邮箱已验证</div>
+                <div class="message">
+                    <p>你的邮箱已经验证过了！</p>
+                    <p>3秒后自动跳转到 SHH-ELF...</p>
+                </div>
+                <a href="https://hz2784.github.io/shh-elf/" class="button">立即前往 SHH-ELF</a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
+
+    # 验证邮箱
+    verify_user_email(db, user)
+
+    # 发送欢迎邮件
+    send_welcome_email(user.email, user.username)
+
+    # 返回成功页面
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>邮箱验证成功 - SHH-ELF</title>
+        <style>
+            body { font-family: 'Courier New', monospace; background: #000; color: #00ff00; text-align: center; padding: 50px; }
+            .container { max-width: 600px; margin: 0 auto; border: 2px solid #00ff00; padding: 40px; background: #111; }
+            .header { font-size: 24px; margin-bottom: 30px; text-transform: uppercase; }
+            .message { margin-bottom: 30px; line-height: 1.6; }
+            .button { display: inline-block; background: #00ff00; color: #000; padding: 15px 30px; text-decoration: none; text-transform: uppercase; font-weight: bold; }
+            .success { color: #00ff00; font-size: 48px; margin-bottom: 20px; }
+        </style>
+        <script>
+            setTimeout(function() {
+                window.location.href = 'https://hz2784.github.io/shh-elf/';
+            }, 5000);
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <div class="success">🎉</div>
+            <div class="header">邮箱验证成功！</div>
+            <div class="message">
+                <p>欢迎来到 SHH-ELF！</p>
+                <p>现在你可以享受完整功能：</p>
+                <ul style="text-align: left; max-width: 300px; margin: 20px auto;">
+                    <li>保存推荐历史</li>
+                    <li>查看所有推荐</li>
+                    <li>分享个性化内容</li>
+                </ul>
+                <p style="margin-top: 30px;">5秒后自动跳转...</p>
+            </div>
+            <a href="https://hz2784.github.io/shh-elf/" class="button">开始使用 SHH-ELF</a>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+@app.post("/api/resend-verification")
+async def resend_verification(username: str, db: Session = Depends(get_db)):
+    """重新发送验证邮件"""
+    user = get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在"
+        )
+
+    if user.is_email_verified == 'true':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="邮箱已经验证过了"
+        )
+
+    # 生成新的验证token
+    verification_token = generate_verification_token()
+    update_verification_token(db, user, verification_token)
+
+    # 发送验证邮件
+    email_sent = send_verification_email(user.email, user.username, verification_token)
+
+    if email_sent:
+        return {"success": True, "message": "验证邮件已重新发送"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="发送验证邮件失败"
+        )
 
 @app.post("/api/generate-recommendation", response_model=RecommendationResponse)
 async def generate_recommendation(
