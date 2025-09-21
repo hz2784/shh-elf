@@ -5,6 +5,13 @@ from email.mime.multipart import MIMEMultipart
 import os
 from typing import Optional
 
+# 导入SendGrid支持
+try:
+    from email_service_sendgrid import send_verification_email_sendgrid, send_welcome_email_sendgrid
+    SENDGRID_AVAILABLE = True
+except ImportError:
+    SENDGRID_AVAILABLE = False
+
 # 邮件配置 - 支持多种邮箱服务商
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
@@ -47,8 +54,13 @@ def generate_verification_token() -> str:
     return secrets.token_urlsafe(32)
 
 def send_verification_email(to_email: str, username: str, verification_token: str) -> bool:
-    """发送邮箱验证邮件"""
+    """发送邮箱验证邮件 - 优先使用SendGrid，回退到SMTP"""
 
+    # 优先使用SendGrid
+    if SENDGRID_AVAILABLE and os.getenv("SENDGRID_API_KEY"):
+        return send_verification_email_sendgrid(to_email, username, verification_token)
+
+    # 回退到SMTP
     if not EMAIL_USER or not EMAIL_PASSWORD:
         print("邮件服务未配置，跳过发送验证邮件")
         return False
@@ -148,8 +160,13 @@ def send_verification_email(to_email: str, username: str, verification_token: st
         return False
 
 def send_welcome_email(to_email: str, username: str) -> bool:
-    """发送欢迎邮件（邮箱验证成功后）"""
+    """发送欢迎邮件（邮箱验证成功后） - 优先使用SendGrid，回退到SMTP"""
 
+    # 优先使用SendGrid
+    if SENDGRID_AVAILABLE and os.getenv("SENDGRID_API_KEY"):
+        return send_welcome_email_sendgrid(to_email, username)
+
+    # 回退到SMTP
     if not EMAIL_USER or not EMAIL_PASSWORD:
         return False
 
