@@ -50,6 +50,7 @@ class BookRecommendation(BaseModel):
     recipient_interests: str = ""
     tone: str = "友好热情"
     language: str = "中文"
+    dialect: str = "zh-CN-XiaoxiaoNeural"
 
 class RecommendationResponse(BaseModel):
     success: bool
@@ -126,17 +127,18 @@ Generate the recommendation:
         raise HTTPException(status_code=500, detail=f"GPT API错误: {str(e)}")
 
 # 智能文本转语音 - 根据语言选择最佳API
-def text_to_speech(text: str, filename: str, language: str) -> str:
-    """根据语言选择最佳TTS服务：中文使用OpenAI TTS，英文使用ElevenLabs"""
+def text_to_speech(text: str, filename: str, language: str, dialect: str = "zh-CN-XiaoxiaoNeural") -> str:
+    """根据语言选择最佳TTS服务：中文使用Azure方言语音，英文使用ElevenLabs"""
 
     print(f"=== 语音生成调试信息 ===")
     print(f"文本: {text}")
     print(f"文件名: {filename}")
     print(f"语言: {language}")
+    print(f"方言: {dialect}")
 
     if language == "中文":
-        # 优先使用Azure Speech Services，默认使用东北口音
-        return azure_text_to_speech(text, filename, "zh-CN-liaoning-XiaobeiNeural")
+        # 使用Azure Speech Services和用户选择的方言
+        return azure_text_to_speech(text, filename, dialect)
     else:
         return elevenlabs_text_to_speech(text, filename)
 
@@ -332,7 +334,7 @@ async def generate_recommendation(req: BookRecommendation):
         filename = f"rec_{content_hash}"
         
         # 生成语音文件
-        audio_path = text_to_speech(recommendation_text, filename, req.language)
+        audio_path = text_to_speech(recommendation_text, filename, req.language, req.dialect)
 
         # 存储分享的语言信息
         share_language_store[content_hash] = req.language
