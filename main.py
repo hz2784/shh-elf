@@ -70,6 +70,9 @@ share_language_store = {}
 # 存储Cloudinary音频URL的缓存
 cloudinary_audio_cache = {}
 
+# Discovery缓存 - 存储用户发现的书籍分析
+discovery_cache = {}
+
 # 挂载音频文件服务
 app.mount("/audio", StaticFiles(directory="audio"), name="audio")
 
@@ -131,10 +134,24 @@ class RecommendationHistoryResponse(BaseModel):
     recipient_name: str
     relationship: str
     language: str
-    recommendation_text: str
-    audio_path: str
-    share_id: str
-    created_at: str
+
+class BookDiscoveryRequest(BaseModel):
+    book_title: str
+    author: str
+    user_level: Optional[str] = "B2"  # CEFR level
+
+class BookDiscoveryResponse(BaseModel):
+    success: bool
+    book_title: str
+    author: str
+    first_paragraph: str
+    sample_audio_url: str
+    book_talk_text: str
+    book_talk_audio_url: str
+    cefr_level: str
+    estimated_vocabulary: int
+    formal_models: List[str]
+    analysis_id: str
 
 # GPT生成推荐文本
 def generate_recommendation_text(book_title: str, recipient_name: str, relationship: str, interests: str, tone: str, language: str) -> str:
@@ -406,6 +423,78 @@ def elevenlabs_text_to_speech(text: str, filename: str) -> str:
         print(f"ElevenLabs错误: {str(e)}")
         print("回退到OpenAI TTS生成英文语音")
         return openai_english_text_to_speech(text, filename)
+
+def analyze_book_with_ai(book_title: str, author: str, user_level: str = "B2") -> dict:
+    """使用AI分析任意书籍，获取第一段、难度、formal models等"""
+
+    analysis_prompt = f"""
+    请分析《{book_title}》by {author} 这本书，为{user_level}水平的英语学习者提供以下信息：
+
+    1. 找到或创建这本书真实的第一段话（约150-200词）
+    2. 评估CEFR难度等级 (A2/B1/B2/C1/C2)
+    3. 估算所需词汇量 (3000-10000)
+    4. 识别2-3个formal models（如：rational thinking, form-giving, illusion vs reality, social critique等）
+    5. 写一段吸引人的book talk推荐（100-150词，解释为什么这本书值得读）
+
+    请用JSON格式返回：
+    {{
+        "first_paragraph": "实际的第一段文字...",
+        "cefr_level": "B2",
+        "estimated_vocabulary": 6000,
+        "formal_models": ["model1", "model2", "model3"],
+        "book_talk": "这本书的推荐文字..."
+    }}
+    """
+
+    try:
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "user", "content": analysis_prompt}],
+                "temperature": 0.3
+            }
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            ai_content = result['choices'][0]['message']['content']
+
+            # 尝试解析JSON
+            import json
+            try:
+                # 提取JSON部分
+                start = ai_content.find('{')
+                end = ai_content.rfind('}') + 1
+                json_str = ai_content[start:end]
+                analysis = json.loads(json_str)
+                return analysis
+            except:
+                # 如果JSON解析失败，返回默认值
+                return {
+                    "first_paragraph": f"Sorry, could not retrieve the first paragraph of {book_title} by {author}. This is a placeholder text for analysis purposes.",
+                    "cefr_level": user_level,
+                    "estimated_vocabulary": 6000,
+                    "formal_models": ["literary analysis", "narrative structure", "character development"],
+                    "book_talk": f"{book_title} by {author} is a compelling work that offers rich opportunities for language learning and literary appreciation."
+                }
+        else:
+            raise Exception(f"OpenAI API error: {response.status_code}")
+
+    except Exception as e:
+        print(f"AI analysis error: {str(e)}")
+        # 返回默认分析
+        return {
+            "first_paragraph": f"Unable to analyze {book_title} by {author} at this time. Please try again later.",
+            "cefr_level": user_level,
+            "estimated_vocabulary": 6000,
+            "formal_models": ["literary analysis", "narrative structure"],
+            "book_talk": f"We're currently unable to provide a detailed analysis of {book_title}, but it remains an interesting choice for language learners."
+        }
 
 def openai_english_text_to_speech(text: str, filename: str) -> str:
     """使用OpenAI TTS生成英文语音（ElevenLabs备用方案）"""
@@ -1317,6 +1406,56 @@ async def get_audio_file(filename: str):
     response.headers["Access-Control-Allow-Headers"] = "*"
 
     return response
+
+@app.post("/api/discover-book")
+async def discover_book(request: BookDiscoveryRequest, current_user: User = Depends(get_current_user_optional)):
+    """Discovery功能：分析用户输入的任意书籍"""
+    try:
+        # 生成分析ID
+        import hashlib
+        analysis_id = hashlib.md5(f"{request.book_title}_{request.author}_{request.user_level}".encode()).hexdigest()[:12]
+
+        # 检查缓存
+        if analysis_id in discovery_cache:
+            print(f"返回缓存的分析结果: {analysis_id}")
+            return discovery_cache[analysis_id]
+
+        print(f"开始分析新书: {request.book_title} by {request.author}")
+
+        # 使用AI分析书籍
+        analysis = analyze_book_with_ai(request.book_title, request.author, request.user_level)
+
+        # 生成音频文件
+        sample_filename = f"discovery_sample_{analysis_id}"
+        sample_audio_url = text_to_speech(analysis["first_paragraph"], sample_filename, "English")
+
+        talk_filename = f"discovery_talk_{analysis_id}"
+        talk_audio_url = text_to_speech(analysis["book_talk"], talk_filename, "English")
+
+        # 构建响应
+        response = BookDiscoveryResponse(
+            success=True,
+            book_title=request.book_title,
+            author=request.author,
+            first_paragraph=analysis["first_paragraph"],
+            sample_audio_url=sample_audio_url,
+            book_talk_text=analysis["book_talk"],
+            book_talk_audio_url=talk_audio_url,
+            cefr_level=analysis["cefr_level"],
+            estimated_vocabulary=analysis["estimated_vocabulary"],
+            formal_models=analysis["formal_models"],
+            analysis_id=analysis_id
+        )
+
+        # 缓存结果
+        discovery_cache[analysis_id] = response
+
+        print(f"书籍分析完成: {request.book_title}")
+        return response
+
+    except Exception as e:
+        print(f"Discovery error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Book discovery failed: {str(e)}")
 
 @app.get("/api/health")
 async def health_check():

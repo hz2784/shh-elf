@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Discovery - SHH-ELF</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-black: #000000;
+            --bg-dark: #111111;
+            --primary-green: #00ff41;
+            --dark-green: #00cc33;
+            --light-gray: #333333;
+            --white: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-black);
+            color: var(--white);
+            font-family: 'VT323', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-dark);
+            border-bottom: 2px solid var(--primary-green);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 2rem;
+            color: var(--primary-green);
+            text-decoration: none;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            color: var(--white);
+            text-decoration: none;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--primary-green);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .discovery-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .discovery-title {
+            font-size: 3rem;
+            color: var(--primary-green);
+            margin-bottom: 20px;
+        }
+
+        .discovery-subtitle {
+            font-size: 1.4rem;
+            color: var(--white);
+            margin-bottom: 10px;
+        }
+
+        .discovery-description {
+            color: var(--light-gray);
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* Discovery Form */
+        .discovery-form {
+            background: var(--bg-dark);
+            border: 2px solid var(--primary-green);
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--primary-green);
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--light-gray);
+            color: var(--white);
+            padding: 12px;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-green);
+        }
+
+        .form-select {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--light-gray);
+            color: var(--white);
+            padding: 12px;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+        }
+
+        .discover-btn {
+            background: var(--bg-black);
+            color: var(--primary-green);
+            border: 3px solid var(--primary-green);
+            padding: 15px 30px;
+            font-family: 'VT323', monospace;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .discover-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .discover-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Results Section */
+        .discovery-results {
+            display: none;
+            background: var(--bg-dark);
+            border: 2px solid var(--primary-green);
+            padding: 30px;
+        }
+
+        .result-header {
+            border-bottom: 2px solid var(--primary-green);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .book-title {
+            font-size: 2rem;
+            color: var(--primary-green);
+            margin-bottom: 10px;
+        }
+
+        .book-author {
+            font-size: 1.4rem;
+            color: var(--white);
+            margin-bottom: 20px;
+        }
+
+        .book-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .meta-tag {
+            background: var(--dark-green);
+            color: var(--bg-black);
+            padding: 5px 10px;
+            font-size: 1rem;
+            border-radius: 3px;
+        }
+
+        .content-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            color: var(--primary-green);
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .first-paragraph {
+            background: var(--bg-black);
+            border: 1px solid var(--light-gray);
+            padding: 20px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-style: italic;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .audio-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 2px solid var(--primary-green);
+            padding: 10px 20px;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .audio-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .formal-models {
+            margin-top: 20px;
+        }
+
+        .formal-model-tag {
+            display: inline-block;
+            background: var(--dark-green);
+            color: var(--bg-black);
+            padding: 8px 15px;
+            margin: 5px 5px 5px 0;
+            font-size: 1rem;
+            border-radius: 3px;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--primary-green);
+            font-size: 1.3rem;
+        }
+
+        .error-message {
+            display: none;
+            background: #ff4444;
+            color: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .discovery-title {
+                font-size: 2.5rem;
+            }
+
+            .book-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .audio-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="/" class="logo">SHH-ELF</a>
+            <nav class="nav-links">
+                <a href="/">Home</a>
+                <a href="/gallery.html">Gallery</a>
+                <a href="/playground.html">Playground</a>
+                <a href="/discovery.html" class="active">Discovery</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="discovery-header">
+            <h1 class="discovery-title">BOOK DISCOVERY</h1>
+            <div class="discovery-subtitle">Analyze Any Book for Language Learning</div>
+            <div class="discovery-description">
+                Enter any book title and author to get instant analysis:<br>
+                First paragraph preview, audio narration, difficulty assessment, and formal models.
+            </div>
+        </div>
+
+        <!-- Discovery Form -->
+        <div class="discovery-form">
+            <div class="form-group">
+                <label class="form-label" for="bookTitle">Book Title</label>
+                <input type="text" id="bookTitle" class="form-input" placeholder="e.g., Pride and Prejudice" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="bookAuthor">Author</label>
+                <input type="text" id="bookAuthor" class="form-input" placeholder="e.g., Jane Austen" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="userLevel">Your English Level</label>
+                <select id="userLevel" class="form-select">
+                    <option value="A2">A2 - Elementary</option>
+                    <option value="B1">B1 - Intermediate</option>
+                    <option value="B2" selected>B2 - Upper Intermediate</option>
+                    <option value="C1">C1 - Advanced</option>
+                    <option value="C2">C2 - Proficient</option>
+                </select>
+            </div>
+
+            <button id="discoverBtn" class="discover-btn" onclick="discoverBook()">
+                Discover This Book
+            </button>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="loading-spinner">
+            Analyzing book... This may take a moment.
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message"></div>
+
+        <!-- Discovery Results -->
+        <div id="discoveryResults" class="discovery-results">
+            <div class="result-header">
+                <div id="resultBookTitle" class="book-title"></div>
+                <div id="resultBookAuthor" class="book-author"></div>
+                <div class="book-meta">
+                    <span id="resultCefrLevel" class="meta-tag"></span>
+                    <span id="resultVocabSize" class="meta-tag"></span>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <div class="section-title">First Paragraph</div>
+                <div id="resultFirstParagraph" class="first-paragraph"></div>
+                <div class="audio-controls">
+                    <button id="sampleAudioBtn" class="audio-btn" onclick="playAudio('sample')">
+                        Listen to Sample
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <div class="section-title">Book Talk</div>
+                <div id="resultBookTalk" class="first-paragraph"></div>
+                <div class="audio-controls">
+                    <button id="talkAudioBtn" class="audio-btn" onclick="playAudio('talk')">
+                        Listen to Book Talk
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <div class="section-title">Formal Models</div>
+                <div id="resultFormalModels" class="formal-models"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://shh-elf.onrender.com';
+        let currentAnalysis = null;
+        let currentAudio = null;
+
+        async function discoverBook() {
+            const bookTitle = document.getElementById('bookTitle').value.trim();
+            const bookAuthor = document.getElementById('bookAuthor').value.trim();
+            const userLevel = document.getElementById('userLevel').value;
+
+            if (!bookTitle || !bookAuthor) {
+                showError('Please enter both book title and author.');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('discoveryResults').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('discoverBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/discover-book`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        book_title: bookTitle,
+                        author: bookAuthor,
+                        user_level: userLevel
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Analysis failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentAnalysis = result;
+                displayResults(result);
+
+            } catch (error) {
+                console.error('Discovery error:', error);
+                showError('Failed to analyze book. Please try again.');
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('discoverBtn').disabled = false;
+            }
+        }
+
+        function displayResults(analysis) {
+            document.getElementById('resultBookTitle').textContent = analysis.book_title;
+            document.getElementById('resultBookAuthor').textContent = `by ${analysis.author}`;
+            document.getElementById('resultCefrLevel').textContent = `CEFR: ${analysis.cefr_level}`;
+            document.getElementById('resultVocabSize').textContent = `Vocabulary: ${analysis.estimated_vocabulary} words`;
+            document.getElementById('resultFirstParagraph').textContent = analysis.first_paragraph;
+            document.getElementById('resultBookTalk').textContent = analysis.book_talk_text;
+
+            // Display formal models
+            const modelsContainer = document.getElementById('resultFormalModels');
+            modelsContainer.innerHTML = analysis.formal_models
+                .map(model => `<span class="formal-model-tag">${model}</span>`)
+                .join('');
+
+            document.getElementById('discoveryResults').style.display = 'block';
+        }
+
+        function playAudio(type) {
+            if (!currentAnalysis) return;
+
+            // Stop current audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+
+            const audioUrl = type === 'sample' ? currentAnalysis.sample_audio_url : currentAnalysis.book_talk_audio_url;
+            const button = type === 'sample' ? document.getElementById('sampleAudioBtn') : document.getElementById('talkAudioBtn');
+
+            if (audioUrl.startsWith('http')) {
+                currentAudio = new Audio(audioUrl);
+                button.textContent = type === 'sample' ? 'Playing Sample...' : 'Playing Book Talk...';
+
+                currentAudio.play().catch(error => {
+                    console.error('Audio playback failed:', error);
+                    button.textContent = 'Audio Error';
+                    setTimeout(() => {
+                        button.textContent = type === 'sample' ? 'Listen to Sample' : 'Listen to Book Talk';
+                    }, 2000);
+                });
+
+                currentAudio.onended = () => {
+                    button.textContent = type === 'sample' ? 'Listen to Sample' : 'Listen to Book Talk';
+                    currentAudio = null;
+                };
+            } else {
+                showError('Audio not available yet. Please try again in a moment.');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Handle Enter key in form inputs
+        document.getElementById('bookTitle').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('bookAuthor').focus();
+            }
+        });
+
+        document.getElementById('bookAuthor').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                discoverBook();
+            }
+        });
+    </script>
+</body>
+</html>
