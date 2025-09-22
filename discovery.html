@@ -92,11 +92,15 @@
         /* Main Content */
         .main-content {
             flex: 1;
-            max-width: 900px;
-            margin: 40px auto 0;
-            padding: 40px 20px;
+            margin-top: 40px;
+            padding: 20px;
+        }
+
+        .discovery-container {
+            margin: 20px;
             border: 3px solid var(--primary-green);
             background: var(--bg-dark);
+            padding: 30px;
         }
 
         .discovery-header {
@@ -105,7 +109,7 @@
         }
 
         .discovery-title {
-            font-size: 3rem;
+            font-size: 2.5rem;
             color: var(--primary-green);
             margin-bottom: 20px;
         }
@@ -341,14 +345,15 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <div class="discovery-header">
-            <h1 class="discovery-title">BOOK DISCOVERY</h1>
-            <div class="discovery-subtitle">Analyze Any Book for Language Learning</div>
-            <div class="discovery-description">
-                Enter any book title and author to get instant analysis:<br>
-                First paragraph preview, audio narration, difficulty assessment, and formal models.
+        <div class="discovery-container">
+            <div class="discovery-header">
+                <h1 class="discovery-title">BOOK TALK DISCOVERY</h1>
+                <div class="discovery-subtitle">Analyze Any Book for Language Learning</div>
+                <div class="discovery-description">
+                    Enter any book title and author to get instant analysis:<br>
+                    First paragraph preview, audio narration, difficulty assessment, and formal models.
+                </div>
             </div>
-        </div>
 
         <!-- Discovery Form -->
         <div class="discovery-form">
@@ -421,6 +426,7 @@
                 <div class="section-title">Formal Models</div>
                 <div id="resultFormalModels" class="formal-models"></div>
             </div>
+        </div>
         </div>
     </div>
 
