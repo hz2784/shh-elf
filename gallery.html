@@ -350,6 +350,28 @@
             color: var(--bg-black);
         }
 
+        .toggle-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 8px 12px;
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+            border-radius: 3px;
+        }
+
+        .toggle-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .sample-toggle {
+            margin-bottom: 10px;
+        }
+
         .audio-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -449,11 +471,11 @@
     <div class="main-content">
         <!-- Book Talk Gallery -->
         <section class="book-gallery">
-            <div class="gallery-header">📚 BOOK TALK GALLERY</div>
+            <div class="gallery-header">BOOK TALK GALLERY</div>
             <div class="gallery-desc">
                 Discover classic novels with difficulty levels, sample readings, and expert book talks.<br>
                 Perfect for English learners who want to explore literature through
-                <strong>Joshua Landy's formal models</strong> and <strong>CEFR difficulty ratings</strong>.
+                <strong>formal models</strong> and <strong>CEFR difficulty ratings</strong>.
             </div>
 
             <div class="filter-controls">
@@ -535,20 +557,25 @@
                     </div>
 
                     <div class="sample-section">
-                        <div class="sample-title">📖 Sample Paragraph</div>
-                        <div class="sample-text">"${book.sample_paragraph}"</div>
+                        <div class="sample-title">Sample Paragraph</div>
+                        <div class="sample-toggle">
+                            <button class="toggle-btn" onclick="toggleSampleText(this)">
+                                Show Sample Text
+                            </button>
+                        </div>
+                        <div class="sample-text" style="display: none;">"${book.sample_paragraph}"</div>
                         <div class="audio-controls">
                             <button class="audio-btn" onclick="playAudio('${book.sample_audio_path}', this)">
-                                🎧 Listen Sample
+                                Listen Sample
                             </button>
                             <button class="audio-btn" onclick="playAudio('${book.book_talk_audio_path}', this)">
-                                🎙️ Full Book Talk
+                                Full Book Talk
                             </button>
                         </div>
                     </div>
 
                     <div class="formal-models">
-                        <div class="formal-models-title">🧠 Joshua Landy's Formal Models</div>
+                        <div class="formal-models-title">Formal Models</div>
                         ${book.formal_models.map(model => `<span class="formal-model-tag">${model}</span>`).join('')}
                     </div>
                 </div>
@@ -583,13 +610,28 @@
         let currentButton = null;
 
         function playAudio(audioPath, buttonElement) {
-            // Stop current audio if playing
+            // Check if clicking the same button that's currently playing
+            if (currentButton === buttonElement && currentAudio) {
+                if (currentAudio.paused) {
+                    // Resume playback
+                    currentAudio.play().catch(error => {
+                        console.error('Audio resume failed:', error);
+                        resetAudioButton(buttonElement);
+                    });
+                    buttonElement.textContent = buttonElement.textContent.includes('Sample') ? 'Playing Sample...' : 'Playing Book Talk...';
+                } else {
+                    // Pause playback
+                    currentAudio.pause();
+                    buttonElement.textContent = buttonElement.textContent.includes('Sample') ? 'Resume Sample' : 'Resume Book Talk';
+                }
+                return;
+            }
+
+            // Stop current audio if playing different button
             if (currentAudio) {
                 currentAudio.pause();
-                currentAudio = null;
                 if (currentButton) {
-                    currentButton.textContent = currentButton.textContent.replace('⏸️', '🎧').replace('⏹️', '🎙️');
-                    currentButton.disabled = false;
+                    resetAudioButton(currentButton);
                 }
             }
 
@@ -599,24 +641,41 @@
             currentAudio = new Audio(audioUrl);
             currentButton = buttonElement;
 
-            buttonElement.textContent = buttonElement.textContent.includes('Sample') ? '⏸️ Playing Sample...' : '⏹️ Playing Book Talk...';
-            buttonElement.disabled = true;
+            buttonElement.textContent = buttonElement.textContent.includes('Sample') ? 'Playing Sample...' : 'Playing Book Talk...';
 
             currentAudio.play().catch(error => {
                 console.error('Audio playback failed:', error);
-                buttonElement.textContent = '❌ Audio Error';
+                buttonElement.textContent = 'Audio Error';
                 setTimeout(() => {
-                    buttonElement.textContent = buttonElement.textContent.includes('Sample') ? '🎧 Listen Sample' : '🎙️ Full Book Talk';
-                    buttonElement.disabled = false;
+                    resetAudioButton(buttonElement);
                 }, 2000);
             });
 
             currentAudio.onended = () => {
-                buttonElement.textContent = buttonElement.textContent.includes('Sample') ? '🎧 Listen Sample' : '🎙️ Full Book Talk';
-                buttonElement.disabled = false;
+                resetAudioButton(buttonElement);
                 currentAudio = null;
                 currentButton = null;
             };
+        }
+
+        function resetAudioButton(buttonElement) {
+            const isSample = buttonElement.textContent.includes('Sample') || buttonElement.textContent.includes('Resume Sample');
+            buttonElement.textContent = isSample ? 'Listen Sample' : 'Full Book Talk';
+        }
+
+        function toggleSampleText(buttonElement) {
+            // Find the sample text element (next sibling)
+            const sampleText = buttonElement.parentElement.nextElementSibling;
+
+            if (sampleText.style.display === 'none') {
+                // Show text
+                sampleText.style.display = 'block';
+                buttonElement.textContent = 'Hide Sample Text';
+            } else {
+                // Hide text
+                sampleText.style.display = 'none';
+                buttonElement.textContent = 'Show Sample Text';
+            }
         }
 
         // User management (shared across pages)
