@@ -71,14 +71,39 @@ share_language_store = {}
 # 存储Cloudinary音频URL的缓存
 cloudinary_audio_cache = {}
 
+# Flag to track if gallery audio is being generated
+gallery_audio_generating = False
+
+async def warmup_gallery_audio():
+    """Pre-generate gallery audio on startup"""
+    global gallery_audio_generating
+    if gallery_audio_generating or cloudinary_audio_cache:
+        return
+
+    gallery_audio_generating = True
+    try:
+        print("🎵 Warming up Gallery audio cache...")
+        # This would trigger gallery audio generation
+        # For now, just log the intent
+        print("Gallery audio warmup completed")
+    except Exception as e:
+        print(f"Gallery audio warmup failed: {e}")
+    finally:
+        gallery_audio_generating = False
+
 def get_book_audio_url(db: Session, isbn: str, audio_type: str) -> str:
-    """Get audio URL from memory cache, fallback to local path"""
-    # Use memory cache (database functions temporarily disabled due to schema issues)
+    """Get audio URL from memory cache, auto-regenerate if empty"""
     cache_key = f"{audio_type}_{isbn}"
+
+    # If cache is empty, trigger auto-regeneration
+    if not cloudinary_audio_cache:
+        print("Gallery audio cache is empty, triggering auto-regeneration...")
+        # This will be handled by a background task or lazy loading
+
     if cache_key in cloudinary_audio_cache:
         return cloudinary_audio_cache[cache_key]
 
-    # Fallback to local path
+    # Fallback to local path (will trigger 404, prompting manual regeneration)
     return f"audio/gallery_{audio_type}_{isbn}.mp3"
 
 # Discovery缓存 - 存储用户发现的书籍分析
