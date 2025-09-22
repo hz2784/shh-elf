@@ -1188,7 +1188,7 @@ def chinese_share_page(share_id: str) -> HTMLResponse:
                     🎧 语音推荐：
                 </div>
                 <audio controls class="audio-player">
-                    <source src="/audio/rec_{share_id}.mp3" type="audio/mpeg">
+                    <source src="https://res.cloudinary.com/dpao9jg0k/video/upload/shh-elf-audio/rec_{share_id}.mp3" type="audio/mpeg">
                     你的浏览器不支持音频播放。
                 </audio>
             </div>
@@ -1257,7 +1257,7 @@ def english_share_page(share_id: str) -> HTMLResponse:
                     🎧 Audio Recommendation:
                 </div>
                 <audio controls class="audio-player">
-                    <source src="/audio/rec_{share_id}.mp3" type="audio/mpeg">
+                    <source src="https://res.cloudinary.com/dpao9jg0k/video/upload/shh-elf-audio/rec_{share_id}.mp3" type="audio/mpeg">
                     Your browser does not support audio playback.
                 </audio>
             </div>
