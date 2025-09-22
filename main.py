@@ -1340,11 +1340,21 @@ async def get_book_gallery(db: Session = Depends(get_db)):
             }
             books.append(book)
 
-        return {
+        # Check if audio cache needs regeneration
+        audio_cache_empty = not cloudinary_audio_cache
+
+        response = {
             "success": True,
             "books": books,
             "total": len(books)
         }
+
+        # Add cache status for frontend auto-detection
+        if audio_cache_empty:
+            response["audio_cache_empty"] = True
+            response["regeneration_url"] = "/api/generate-gallery-audio"
+
+        return response
     except Exception as e:
         print(f"Book gallery error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1387,6 +1397,7 @@ async def get_book_detail(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate-gallery-audio")
+@app.get("/api/generate-gallery-audio")
 async def generate_gallery_audio(db: Session = Depends(get_db)):
     """为书籍画廊生成示例音频（管理员功能）"""
     try:

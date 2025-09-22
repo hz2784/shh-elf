@@ -522,13 +522,57 @@
         async function loadBookGallery() {
             try {
                 const response = await apiRequest('/api/book-gallery');
-                allBooks = response.books;
+
+                // Check if audio cache is empty and auto-regenerate
+                if (response.audio_cache_empty) {
+                    console.log('🎵 Audio cache is empty, auto-generating audio...');
+                    showAudioLoadingMessage();
+                    await generateGalleryAudio();
+                    // Reload gallery after audio generation
+                    const refreshedResponse = await apiRequest('/api/book-gallery');
+                    allBooks = refreshedResponse.books;
+                } else {
+                    allBooks = response.books;
+                }
+
                 displayBooks(allBooks);
+                hideAudioLoadingMessage();
             } catch (error) {
                 console.error('Failed to load book gallery:', error);
                 document.getElementById('booksGrid').innerHTML =
                     '<div class="error-text">❌ Failed to load book gallery<br>Please try again later.</div>';
+                hideAudioLoadingMessage();
             }
+        }
+
+        async function generateGalleryAudio() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/generate-gallery-audio`);
+                if (!response.ok) {
+                    throw new Error(`Audio generation failed: ${response.status}`);
+                }
+                const result = await response.json();
+                console.log('✅ Gallery audio generated successfully:', result.message);
+                return result;
+            } catch (error) {
+                console.error('Failed to generate gallery audio:', error);
+                throw error;
+            }
+        }
+
+        function showAudioLoadingMessage() {
+            const grid = document.getElementById('booksGrid');
+            grid.innerHTML = `
+                <div class="loading-message" style="text-align: center; padding: 40px; color: var(--primary-green);">
+                    <div style="font-size: 2em; margin-bottom: 20px;">🎵</div>
+                    <div style="font-size: 1.5em; margin-bottom: 10px;">GENERATING AUDIO...</div>
+                    <div style="color: var(--light-gray);">This may take a moment. First-time setup for optimal experience.</div>
+                </div>
+            `;
+        }
+
+        function hideAudioLoadingMessage() {
+            // Loading message will be replaced by actual books
         }
 
         function displayBooks(books) {
