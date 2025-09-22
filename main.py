@@ -404,6 +404,44 @@ def elevenlabs_text_to_speech(text: str, filename: str) -> str:
         return cloudinary_url
     except Exception as e:
         print(f"ElevenLabs错误: {str(e)}")
+        print("回退到OpenAI TTS生成英文语音")
+        return openai_english_text_to_speech(text, filename)
+
+def openai_english_text_to_speech(text: str, filename: str) -> str:
+    """使用OpenAI TTS生成英文语音（ElevenLabs备用方案）"""
+
+    url = "https://api.openai.com/v1/audio/speech"
+
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "model": "tts-1",
+        "input": text,
+        "voice": "alloy",  # 适合英文的声音
+        "response_format": "mp3",
+        "speed": 1.0
+    }
+
+    try:
+        print(f"使用OpenAI TTS生成英文语音（ElevenLabs备用）...")
+        response = requests.post(url, json=data, headers=headers)
+        print(f"OpenAI TTS响应状态: {response.status_code}")
+        response.raise_for_status()
+
+        audio_path = f"audio/{filename}.mp3"
+        with open(audio_path, "wb") as f:
+            f.write(response.content)
+
+        print(f"英文音频文件已保存: {audio_path}")
+
+        # 上传到Cloudinary
+        cloudinary_url = upload_to_cloudinary(audio_path, filename)
+        return cloudinary_url
+    except Exception as e:
+        print(f"OpenAI TTS错误: {str(e)}")
         raise HTTPException(status_code=500, detail=f"英文语音生成错误: {str(e)}")
 
 # API路由
