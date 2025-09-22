@@ -73,7 +73,7 @@ cloudinary_audio_cache = {}
 
 def get_book_audio_url(db: Session, isbn: str, audio_type: str) -> str:
     """Get audio URL from memory cache, fallback to local path"""
-    # Use memory cache until database migration is complete
+    # Use memory cache (database functions temporarily disabled due to schema issues)
     cache_key = f"{audio_type}_{isbn}"
     if cache_key in cloudinary_audio_cache:
         return cloudinary_audio_cache[cache_key]
@@ -1121,8 +1121,8 @@ async def generate_recommendation(
 @app.get("/share/{share_id}")
 async def share_recommendation_page(share_id: str):
     """分享推荐页面 - 支持多语言"""
-    audio_file = f"audio/rec_{share_id}.mp3"
-    if not os.path.exists(audio_file):
+    # Check if share_id exists in memory store (audio files are on Cloudinary now)
+    if share_id not in share_language_store:
         raise HTTPException(status_code=404, detail="推荐不存在")
 
     # 获取推荐的语言，默认为英文
@@ -1274,14 +1274,17 @@ def english_share_page(share_id: str) -> HTMLResponse:
 @app.get("/api/share/{share_id}")
 async def get_shared_recommendation(share_id: str):
     """获取分享的推荐信息"""
-    audio_file = f"audio/rec_{share_id}.mp3"
-    if not os.path.exists(audio_file):
+    # Check if share_id exists in memory store
+    if share_id not in share_language_store:
         raise HTTPException(status_code=404, detail="推荐不存在")
-    
+
+    # Audio is now on Cloudinary, construct URL
+    audio_url = f"https://res.cloudinary.com/dpao9jg0k/video/upload/shh-elf-audio/rec_{share_id}.mp3"
+
     return {
         "success": True,
         "share_id": share_id,
-        "audio_url": f"/audio/rec_{share_id}.mp3",
+        "audio_url": audio_url,
         "message": "推荐存在"
     }
 
