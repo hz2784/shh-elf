@@ -21,7 +21,8 @@ from database import (
     create_tables, get_db, get_user_by_email, get_user_by_username,
     create_user, create_user_recommendation, get_user_recommendations,
     get_recommendation_by_share_id, User, UserRecommendation,
-    get_user_by_verification_token, verify_user_email, update_verification_token
+    get_user_by_verification_token, verify_user_email, update_verification_token,
+    get_book_by_isbn, update_book_audio_urls, create_book_if_not_exists
 )
 from book_gallery import BookTalkGallery, SAMPLE_BOOKS
 from auth import (
@@ -69,6 +70,18 @@ share_language_store = {}
 
 # 存储Cloudinary音频URL的缓存
 cloudinary_audio_cache = {}
+
+def get_book_audio_url(db: Session, isbn: str, audio_type: str) -> str:
+    """Get audio URL from database, fallback to local path"""
+    book = get_book_by_isbn(db, isbn)
+    if book:
+        if audio_type == 'sample' and book.sample_audio_cloudinary_url:
+            return book.sample_audio_cloudinary_url
+        elif audio_type == 'talk' and book.book_talk_audio_cloudinary_url:
+            return book.book_talk_audio_cloudinary_url
+
+    # Fallback to local path
+    return f"audio/gallery_{audio_type}_{isbn}.mp3"
 
 # Discovery缓存 - 存储用户发现的书籍分析
 discovery_cache = {}
@@ -1291,9 +1304,9 @@ async def get_book_gallery(db: Session = Depends(get_db)):
                 "estimated_vocabulary": book_data["estimated_vocabulary"],
                 "formal_models": book_data["formal_models"],
                 "sample_paragraph": book_data["sample_paragraph"],
-                "sample_audio_path": cloudinary_audio_cache.get(f"sample_{book_data['isbn']}", f"audio/gallery_sample_{book_data['isbn']}.mp3"),
+                "sample_audio_path": get_book_audio_url(db, book_data['isbn'], 'sample'),
                 "book_talk_text": book_data["book_talk_text"],
-                "book_talk_audio_path": cloudinary_audio_cache.get(f"talk_{book_data['isbn']}", f"audio/gallery_talk_{book_data['isbn']}.mp3"),
+                "book_talk_audio_path": get_book_audio_url(db, book_data['isbn'], 'talk'),
                 "genre": book_data["genre"],
                 "publication_year": book_data["publication_year"],
                 "page_count": book_data["page_count"],
@@ -1328,9 +1341,9 @@ async def get_book_detail(book_id: int, db: Session = Depends(get_db)):
             "estimated_vocabulary": book_data["estimated_vocabulary"],
             "formal_models": book_data["formal_models"],
             "sample_paragraph": book_data["sample_paragraph"],
-            "sample_audio_path": cloudinary_audio_cache.get(f"sample_{book_data['isbn']}", f"audio/gallery_sample_{book_data['isbn']}.mp3"),
+            "sample_audio_path": get_book_audio_url(db, book_data['isbn'], 'sample'),
             "book_talk_text": book_data["book_talk_text"],
-            "book_talk_audio_path": cloudinary_audio_cache.get(f"talk_{book_data['isbn']}", f"audio/gallery_talk_{book_data['isbn']}.mp3"),
+            "book_talk_audio_path": get_book_audio_url(db, book_data['isbn'], 'talk'),
             "genre": book_data["genre"],
             "publication_year": book_data["publication_year"],
             "page_count": book_data["page_count"],
@@ -1348,12 +1361,15 @@ async def get_book_detail(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate-gallery-audio")
-async def generate_gallery_audio():
+async def generate_gallery_audio(db: Session = Depends(get_db)):
     """为书籍画廊生成示例音频（管理员功能）"""
     try:
         generated_files = []
 
         for book_data in SAMPLE_BOOKS:
+            # Ensure book exists in database
+            create_book_if_not_exists(db, book_data)
+
             # Generate sample paragraph audio
             sample_filename = f"gallery_sample_{book_data['isbn']}"
             sample_audio = text_to_speech(
@@ -1362,8 +1378,6 @@ async def generate_gallery_audio():
                 "English"
             )
             generated_files.append(sample_audio)
-            # 缓存URL
-            cloudinary_audio_cache[f"sample_{book_data['isbn']}"] = sample_audio
 
             # Generate book talk audio
             talk_filename = f"gallery_talk_{book_data['isbn']}"
@@ -1373,8 +1387,9 @@ async def generate_gallery_audio():
                 "English"
             )
             generated_files.append(talk_audio)
-            # 缓存URL
-            cloudinary_audio_cache[f"talk_{book_data['isbn']}"] = talk_audio
+
+            # Save URLs to database
+            update_book_audio_urls(db, book_data['isbn'], sample_audio, talk_audio)
 
         return {
             "success": True,

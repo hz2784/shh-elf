@@ -146,3 +146,47 @@ def update_verification_token(db: Session, user: User, token: str):
     db.commit()
     db.refresh(user)
     return user
+
+# Gallery related functions
+def get_book_by_isbn(db: Session, isbn: str):
+    from book_gallery import BookTalkGallery
+    return db.query(BookTalkGallery).filter(BookTalkGallery.isbn == isbn).first()
+
+def update_book_audio_urls(db: Session, isbn: str, sample_url: str, talk_url: str):
+    from book_gallery import BookTalkGallery
+    book = db.query(BookTalkGallery).filter(BookTalkGallery.isbn == isbn).first()
+    if book:
+        book.sample_audio_cloudinary_url = sample_url
+        book.book_talk_audio_cloudinary_url = talk_url
+        db.commit()
+        db.refresh(book)
+    return book
+
+def create_book_if_not_exists(db: Session, book_data: dict):
+    from book_gallery import BookTalkGallery
+    import json
+
+    existing_book = get_book_by_isbn(db, book_data["isbn"])
+    if existing_book:
+        return existing_book
+
+    new_book = BookTalkGallery(
+        title=book_data["title"],
+        author=book_data["author"],
+        isbn=book_data["isbn"],
+        cefr_level=book_data["cefr_level"],
+        estimated_vocabulary=book_data["estimated_vocabulary"],
+        formal_models=json.dumps(book_data["formal_models"]),
+        sample_paragraph=book_data["sample_paragraph"],
+        sample_audio_path=f"audio/gallery_sample_{book_data['isbn']}.mp3",
+        book_talk_text=book_data["book_talk_text"],
+        book_talk_audio_path=f"audio/gallery_talk_{book_data['isbn']}.mp3",
+        genre=book_data["genre"],
+        publication_year=book_data["publication_year"],
+        page_count=book_data.get("page_count"),
+        goodreads_rating=book_data.get("goodreads_rating")
+    )
+    db.add(new_book)
+    db.commit()
+    db.refresh(new_book)
+    return new_book
