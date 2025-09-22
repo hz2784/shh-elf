@@ -75,7 +75,7 @@ SAMPLE_BOOKS = [
     {
         "title": "My Year of Rest and Relaxation",
         "author": "Ottessa Moshfegh",
-        "isbn": "9780143133315",
+        "isbn": "9780525522133",
         "cefr_level": "B2",
         "estimated_vocabulary": 6500,
         "formal_models": ["nihilism", "social critique", "psychological realism"],
