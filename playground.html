@@ -65,15 +65,49 @@
         }
 
         /* Header Terminal */
-        .terminal-header {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: var(--bg-black);
+        /* Header Navigation (Discovery Style) */
+        .header {
+            background: var(--bg-dark);
             border-bottom: 2px solid var(--primary-green);
-            padding: 8px 16px;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
             z-index: 100;
-            font-size: 14px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 2rem;
+            color: var(--primary-green);
+            text-decoration: none;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            color: var(--white);
+            text-decoration: none;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--primary-green);
         }
 
         .terminal-bar {
@@ -538,30 +572,18 @@
     </style>
 </head>
 <body>
-    <!-- Terminal Header -->
-    <div class="terminal-header">
-        <div class="terminal-bar">
-            <span class="terminal-title">SHH-ELF.EXE - BOOK TALK PLAYGROUND</span>
-            <div class="terminal-controls">
-                <div class="user-controls" id="userControls">
-                    <div id="loggedOutControls">
-                        <button class="user-btn" onclick="showModal('loginModal')">LOGIN</button>
-                        <button class="user-btn" onclick="showModal('registerModal')">REGISTER</button>
-                    </div>
-                    <div id="loggedInControls" style="display: none;">
-                        <span class="username-display" id="usernameDisplay">USER: LOADING...</span>
-                        <button class="user-btn" onclick="showHistory()">HISTORY</button>
-                        <button class="user-btn" onclick="logout()">LOGOUT</button>
-                    </div>
-                </div>
-                <div class="nav-controls">
-                    <a href="index.html" class="nav-btn">🏠 HOME</a>
-                    <a href="gallery.html" class="nav-btn">📚 GALLERY</a>
-                    <a href="playground.html" class="nav-btn">🎮 PLAYGROUND</a>
-                </div>
-            </div>
+    <!-- Header Navigation -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="/" class="logo">SHH-ELF</a>
+            <nav class="nav-links">
+                <a href="/">Home</a>
+                <a href="/gallery.html">Gallery</a>
+                <a href="/playground.html" class="active">Playground</a>
+                <a href="/discovery.html">Discovery</a>
+            </nav>
         </div>
-    </div>
+    </header>
 
     <!-- Matrix Background -->
     <canvas class="matrix-bg" id="matrix"></canvas>
