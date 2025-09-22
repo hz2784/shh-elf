@@ -526,7 +526,6 @@
                 <button class="filter-btn active" onclick="filterBooks('all')">ALL BOOKS</button>
                 <button class="filter-btn" onclick="filterBooks('B1')">B1 LEVEL</button>
                 <button class="filter-btn" onclick="filterBooks('B2')">B2 LEVEL</button>
-                <button class="filter-btn" onclick="filterBooks('formal-models')">FORMAL MODELS</button>
             </div>
 
             <div id="booksGrid" class="books-grid">
@@ -682,13 +681,6 @@
                 filteredBooks = allBooks.filter(book => book.cefr_level === 'B1');
             } else if (filter === 'B2') {
                 filteredBooks = allBooks.filter(book => book.cefr_level === 'B2');
-            } else if (filter === 'formal-models') {
-                // Show books with interesting formal models
-                filteredBooks = allBooks.filter(book =>
-                    book.formal_models.some(model =>
-                        model.includes('thinking') || model.includes('illusion') || model.includes('form-giving')
-                    )
-                );
             }
 
             displayBooks(filteredBooks);
