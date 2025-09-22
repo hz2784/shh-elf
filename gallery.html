@@ -594,7 +594,9 @@
             }
 
             // Play new audio
-            currentAudio = new Audio(`${API_BASE_URL}/${audioPath}`);
+            // 如果audioPath是完整URL（以http开头），直接使用；否则拼接API_BASE_URL
+            const audioUrl = audioPath.startsWith('http') ? audioPath : `${API_BASE_URL}/${audioPath}`;
+            currentAudio = new Audio(audioUrl);
             currentButton = buttonElement;
 
             buttonElement.textContent = buttonElement.textContent.includes('Sample') ? '⏸️ Playing Sample...' : '⏹️ Playing Book Talk...';

@@ -14,6 +14,8 @@ from pathlib import Path
 from datetime import timedelta
 import urllib.parse
 import json
+import cloudinary
+import cloudinary.uploader
 
 from database import (
     create_tables, get_db, get_user_by_email, get_user_by_username,
@@ -32,6 +34,14 @@ from email_service import (
 
 # 加载环境变量
 load_dotenv()
+
+# 配置Cloudinary
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 app = FastAPI(
     title="Shh-elf API", 
@@ -56,6 +66,9 @@ create_tables()
 
 # 简单的内存存储来记录每个分享的语言信息
 share_language_store = {}
+
+# 存储Cloudinary音频URL的缓存
+cloudinary_audio_cache = {}
 
 # 挂载音频文件服务
 app.mount("/audio", StaticFiles(directory="audio"), name="audio")
@@ -192,6 +205,36 @@ Generate the recommendation:
         raise HTTPException(status_code=500, detail=f"GPT API错误: {str(e)}")
 
 # 智能文本转语音 - 根据语言选择最佳API
+def upload_to_cloudinary(local_path: str, public_id: str) -> str:
+    """上传音频文件到Cloudinary并返回URL"""
+    try:
+        print(f"上传文件到Cloudinary: {local_path} -> {public_id}")
+
+        response = cloudinary.uploader.upload(
+            local_path,
+            public_id=public_id,
+            resource_type="video",  # 用于音频文件
+            folder="shh-elf-audio",  # 组织文件的文件夹
+            overwrite=True
+        )
+
+        cloudinary_url = response['secure_url']
+        print(f"Cloudinary URL: {cloudinary_url}")
+
+        # 删除本地文件以节省空间
+        try:
+            os.remove(local_path)
+            print(f"已删除本地文件: {local_path}")
+        except:
+            pass
+
+        return cloudinary_url
+
+    except Exception as e:
+        print(f"Cloudinary上传错误: {str(e)}")
+        # 如果上传失败，返回本地路径作为后备
+        return local_path
+
 def text_to_speech(text: str, filename: str, language: str, dialect: str = "zh-CN-XiaoxiaoNeural") -> str:
     """根据语言选择最佳TTS服务：中文使用Azure方言语音，英文使用ElevenLabs"""
 
@@ -275,7 +318,10 @@ def azure_text_to_speech(text: str, filename: str, voice_name: str = "zh-CN-Xiao
             f.write(response.content)
 
         print(f"Azure中文音频文件已保存: {audio_path}")
-        return audio_path
+
+        # 上传到Cloudinary
+        cloudinary_url = upload_to_cloudinary(audio_path, filename)
+        return cloudinary_url
     except Exception as e:
         print(f"Azure Speech错误: {str(e)}")
         print("回退到OpenAI TTS")
@@ -310,7 +356,10 @@ def openai_text_to_speech(text: str, filename: str) -> str:
             f.write(response.content)
 
         print(f"中文音频文件已保存: {audio_path}")
-        return audio_path
+
+        # 上传到Cloudinary
+        cloudinary_url = upload_to_cloudinary(audio_path, filename)
+        return cloudinary_url
     except Exception as e:
         print(f"OpenAI TTS错误: {str(e)}")
         raise HTTPException(status_code=500, detail=f"中文语音生成错误: {str(e)}")
@@ -349,7 +398,10 @@ def elevenlabs_text_to_speech(text: str, filename: str) -> str:
             f.write(response.content)
 
         print(f"英文音频文件已保存: {audio_path}")
-        return audio_path
+
+        # 上传到Cloudinary
+        cloudinary_url = upload_to_cloudinary(audio_path, filename)
+        return cloudinary_url
     except Exception as e:
         print(f"ElevenLabs错误: {str(e)}")
         raise HTTPException(status_code=500, detail=f"英文语音生成错误: {str(e)}")
@@ -1112,9 +1164,9 @@ async def get_book_gallery(db: Session = Depends(get_db)):
                 "estimated_vocabulary": book_data["estimated_vocabulary"],
                 "formal_models": book_data["formal_models"],
                 "sample_paragraph": book_data["sample_paragraph"],
-                "sample_audio_path": f"audio/gallery_sample_{book_data['isbn']}.mp3",
+                "sample_audio_path": cloudinary_audio_cache.get(f"sample_{book_data['isbn']}", f"audio/gallery_sample_{book_data['isbn']}.mp3"),
                 "book_talk_text": book_data["book_talk_text"],
-                "book_talk_audio_path": f"audio/gallery_talk_{book_data['isbn']}.mp3",
+                "book_talk_audio_path": cloudinary_audio_cache.get(f"talk_{book_data['isbn']}", f"audio/gallery_talk_{book_data['isbn']}.mp3"),
                 "genre": book_data["genre"],
                 "publication_year": book_data["publication_year"],
                 "page_count": book_data["page_count"],
@@ -1149,9 +1201,9 @@ async def get_book_detail(book_id: int, db: Session = Depends(get_db)):
             "estimated_vocabulary": book_data["estimated_vocabulary"],
             "formal_models": book_data["formal_models"],
             "sample_paragraph": book_data["sample_paragraph"],
-            "sample_audio_path": f"audio/gallery_sample_{book_data['isbn']}.mp3",
+            "sample_audio_path": cloudinary_audio_cache.get(f"sample_{book_data['isbn']}", f"audio/gallery_sample_{book_data['isbn']}.mp3"),
             "book_talk_text": book_data["book_talk_text"],
-            "book_talk_audio_path": f"audio/gallery_talk_{book_data['isbn']}.mp3",
+            "book_talk_audio_path": cloudinary_audio_cache.get(f"talk_{book_data['isbn']}", f"audio/gallery_talk_{book_data['isbn']}.mp3"),
             "genre": book_data["genre"],
             "publication_year": book_data["publication_year"],
             "page_count": book_data["page_count"],
@@ -1183,6 +1235,8 @@ async def generate_gallery_audio():
                 "English"
             )
             generated_files.append(sample_audio)
+            # 缓存URL
+            cloudinary_audio_cache[f"sample_{book_data['isbn']}"] = sample_audio
 
             # Generate book talk audio
             talk_filename = f"gallery_talk_{book_data['isbn']}"
@@ -1192,6 +1246,8 @@ async def generate_gallery_audio():
                 "English"
             )
             generated_files.append(talk_audio)
+            # 缓存URL
+            cloudinary_audio_cache[f"talk_{book_data['isbn']}"] = talk_audio
 
         return {
             "success": True,
