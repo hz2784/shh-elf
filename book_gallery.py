@@ -27,13 +27,11 @@ class BookTalkGallery(Base):
     # Sample content for preview
     sample_paragraph = Column(Text, nullable=False)  # 50-100 words excerpt
     sample_audio_path = Column(String(255), nullable=False)  # 1-minute read-aloud
-    sample_audio_cloudinary_url = Column(String(500))  # Cloudinary URL for sample audio
     sample_duration_seconds = Column(Integer)  # ~60 seconds
 
     # Complete Book Talk
     book_talk_text = Column(Text, nullable=False)  # Full recommendation
     book_talk_audio_path = Column(String(255), nullable=False)  # Full book talk audio
-    book_talk_audio_cloudinary_url = Column(String(500))  # Cloudinary URL for book talk audio
     book_talk_duration_seconds = Column(Integer)  # ~2-3 minutes
 
     # Metadata

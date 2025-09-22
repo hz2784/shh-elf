@@ -1335,7 +1335,11 @@
 
                     // Set audio player
                     const audioPlayer = document.getElementById('audioPlayer');
-                    audioPlayer.src = `${API_BASE_URL}/${result.audio_path}`;
+                    // Check if audio_path is already a full URL (Cloudinary)
+                    const audioUrl = result.audio_path.startsWith('http')
+                        ? result.audio_path
+                        : `${API_BASE_URL}/${result.audio_path}`;
+                    audioPlayer.src = audioUrl;
 
                     // Set share URL - use backend sharing for reliable access
                     const shareUrl = `${API_BASE_URL}/share/${result.share_id}`;

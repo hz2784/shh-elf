@@ -72,13 +72,11 @@ share_language_store = {}
 cloudinary_audio_cache = {}
 
 def get_book_audio_url(db: Session, isbn: str, audio_type: str) -> str:
-    """Get audio URL from database, fallback to local path"""
-    book = get_book_by_isbn(db, isbn)
-    if book:
-        if audio_type == 'sample' and book.sample_audio_cloudinary_url:
-            return book.sample_audio_cloudinary_url
-        elif audio_type == 'talk' and book.book_talk_audio_cloudinary_url:
-            return book.book_talk_audio_cloudinary_url
+    """Get audio URL from memory cache, fallback to local path"""
+    # Use memory cache until database migration is complete
+    cache_key = f"{audio_type}_{isbn}"
+    if cache_key in cloudinary_audio_cache:
+        return cloudinary_audio_cache[cache_key]
 
     # Fallback to local path
     return f"audio/gallery_{audio_type}_{isbn}.mp3"
@@ -1367,9 +1365,6 @@ async def generate_gallery_audio(db: Session = Depends(get_db)):
         generated_files = []
 
         for book_data in SAMPLE_BOOKS:
-            # Ensure book exists in database
-            create_book_if_not_exists(db, book_data)
-
             # Generate sample paragraph audio
             sample_filename = f"gallery_sample_{book_data['isbn']}"
             sample_audio = text_to_speech(
@@ -1378,6 +1373,8 @@ async def generate_gallery_audio(db: Session = Depends(get_db)):
                 "English"
             )
             generated_files.append(sample_audio)
+            # Cache URL in memory
+            cloudinary_audio_cache[f"sample_{book_data['isbn']}"] = sample_audio
 
             # Generate book talk audio
             talk_filename = f"gallery_talk_{book_data['isbn']}"
@@ -1387,9 +1384,8 @@ async def generate_gallery_audio(db: Session = Depends(get_db)):
                 "English"
             )
             generated_files.append(talk_audio)
-
-            # Save URLs to database
-            update_book_audio_urls(db, book_data['isbn'], sample_audio, talk_audio)
+            # Cache URL in memory
+            cloudinary_audio_cache[f"talk_{book_data['isbn']}"] = talk_audio
 
         return {
             "success": True,
