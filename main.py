@@ -74,36 +74,82 @@ cloudinary_audio_cache = {}
 # Flag to track if gallery audio is being generated
 gallery_audio_generating = False
 
+# Startup event to populate audio cache
+@app.on_event("startup")
+async def startup_event():
+    await warmup_gallery_audio()
+
+def populate_audio_cache_from_files():
+    """Pre-populate cache with existing valid audio files"""
+    try:
+        print("🎵 Checking for existing gallery audio files...")
+        populated_count = 0
+
+        for book_data in SAMPLE_BOOKS:
+            isbn = book_data['isbn']
+
+            # Check sample audio
+            sample_path = f"audio/gallery_sample_{isbn}.mp3"
+            if Path(sample_path).exists() and Path(sample_path).stat().st_size > 100:
+                cloudinary_audio_cache[f"sample_{isbn}"] = sample_path
+                populated_count += 1
+                print(f"✓ Found valid sample audio for {book_data['title']}")
+
+            # Check talk audio
+            talk_path = f"audio/gallery_talk_{isbn}.mp3"
+            if Path(talk_path).exists() and Path(talk_path).stat().st_size > 100:
+                cloudinary_audio_cache[f"talk_{isbn}"] = talk_path
+                populated_count += 1
+                print(f"✓ Found valid talk audio for {book_data['title']}")
+
+        if populated_count > 0:
+            print(f"🎵 Pre-populated audio cache with {populated_count} files")
+        else:
+            print("⚠️  No valid audio files found - gallery will trigger regeneration")
+
+    except Exception as e:
+        print(f"Cache population failed: {e}")
+
 async def warmup_gallery_audio():
-    """Pre-generate gallery audio on startup"""
+    """Pre-populate cache and optionally generate missing audio"""
     global gallery_audio_generating
-    if gallery_audio_generating or cloudinary_audio_cache:
+    if gallery_audio_generating:
         return
 
     gallery_audio_generating = True
     try:
-        print("🎵 Warming up Gallery audio cache...")
-        # This would trigger gallery audio generation
-        # For now, just log the intent
-        print("Gallery audio warmup completed")
+        # First, try to populate from existing files
+        populate_audio_cache_from_files()
+
+        # If cache is still empty, we'll let the frontend trigger regeneration
+        if not cloudinary_audio_cache:
+            print("🎵 Audio cache empty - frontend will trigger background generation")
+        else:
+            print(f"🎵 Gallery audio cache ready with {len(cloudinary_audio_cache)} files")
+
     except Exception as e:
         print(f"Gallery audio warmup failed: {e}")
     finally:
         gallery_audio_generating = False
 
 def get_book_audio_url(db: Session, isbn: str, audio_type: str) -> str:
-    """Get audio URL from memory cache, auto-regenerate if empty"""
+    """Get audio URL from memory cache, check local files, or use fallback"""
     cache_key = f"{audio_type}_{isbn}"
 
-    # If cache is empty, trigger auto-regeneration
-    if not cloudinary_audio_cache:
-        print("Gallery audio cache is empty, triggering auto-regeneration...")
-        # This will be handled by a background task or lazy loading
-
+    # Return cached URL if available
     if cache_key in cloudinary_audio_cache:
         return cloudinary_audio_cache[cache_key]
 
-    # Fallback to local path (will trigger 404, prompting manual regeneration)
+    # Check if local file exists and is valid (> 100 bytes)
+    local_path = f"audio/gallery_{audio_type}_{isbn}.mp3"
+    local_file_path = Path(local_path)
+
+    if local_file_path.exists() and local_file_path.stat().st_size > 100:
+        # File exists and is reasonably sized, return local path
+        return local_path
+
+    # File doesn't exist or is too small - return placeholder that will trigger regeneration
+    print(f"Audio file {local_path} missing or invalid (size: {local_file_path.stat().st_size if local_file_path.exists() else 0} bytes)")
     return f"audio/gallery_{audio_type}_{isbn}.mp3"
 
 # Discovery缓存 - 存储用户发现的书籍分析
