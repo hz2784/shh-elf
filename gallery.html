@@ -565,21 +565,20 @@
         async function loadBookGallery() {
             try {
                 const response = await apiRequest('/api/book-gallery');
+                allBooks = response.books;
 
-                // Check if audio cache is empty and auto-regenerate
-                if (response.audio_cache_empty) {
-                    console.log('🎵 Audio cache is empty, auto-generating audio...');
-                    showAudioLoadingMessage();
-                    await generateGalleryAudio();
-                    // Reload gallery after audio generation
-                    const refreshedResponse = await apiRequest('/api/book-gallery');
-                    allBooks = refreshedResponse.books;
-                } else {
-                    allBooks = response.books;
-                }
-
+                // Display books immediately for fast loading
                 displayBooks(allBooks);
                 hideAudioLoadingMessage();
+
+                // Generate audio in background if needed (non-blocking)
+                if (response.audio_cache_empty) {
+                    console.log('🎵 Audio cache is empty, generating audio in background...');
+                    generateGalleryAudio().catch(error => {
+                        console.warn('Background audio generation failed:', error);
+                        // Audio generation failure doesn't affect gallery display
+                    });
+                }
             } catch (error) {
                 console.error('Failed to load book gallery:', error);
                 document.getElementById('booksGrid').innerHTML =
