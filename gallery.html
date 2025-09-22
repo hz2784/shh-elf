@@ -147,54 +147,63 @@
             color: var(--bg-black);
         }
 
-        /* Header Navigation (Discovery Style) */
-        .header {
-            background: var(--bg-dark);
-            border-bottom: 2px solid var(--primary-green);
-            padding: 20px 0;
-            position: sticky;
+        /* Header Terminal */
+        .terminal-header {
+            position: fixed;
             top: 0;
+            width: 100%;
+            background: var(--bg-black);
+            border-bottom: 2px solid var(--primary-green);
+            padding: 8px 16px;
             z-index: 100;
+            font-size: 14px;
         }
 
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .terminal-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 20px;
         }
 
-        .logo {
-            font-size: 2rem;
+        .terminal-title {
             color: var(--primary-green);
-            text-decoration: none;
             text-transform: uppercase;
-            font-weight: bold;
+            letter-spacing: 2px;
         }
 
-        .nav-links {
+        .terminal-controls {
             display: flex;
-            gap: 30px;
+            gap: 15px;
+            align-items: center;
         }
 
-        .nav-links a {
-            color: var(--white);
-            text-decoration: none;
-            font-size: 1.2rem;
-            text-transform: uppercase;
-            transition: color 0.2s;
+        .nav-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
         }
 
-        .nav-links a:hover,
-        .nav-links a.active {
+        .nav-btn {
+            background: transparent;
             color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 12px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
         }
 
         /* Main Content */
         .main-content {
-            margin-top: 0;
+            margin-top: 40px;
             padding: 20px;
         }
 
@@ -488,18 +497,19 @@
     </style>
 </head>
 <body>
-    <!-- Header Navigation -->
-    <header class="header">
-        <div class="nav-container">
-            <a href="/" class="logo">SHH-ELF</a>
-            <nav class="nav-links">
-                <a href="/">Home</a>
-                <a href="/gallery.html" class="active">Gallery</a>
-                <a href="/playground.html">Playground</a>
-                <a href="/discovery.html">Discovery</a>
-            </nav>
+    <div class="terminal-header">
+        <div class="terminal-bar">
+            <span class="terminal-title">SHH-ELF.EXE - BOOK TALK GALLERY</span>
+            <div class="terminal-controls">
+                <div class="nav-controls">
+                    <a href="index.html" class="nav-btn">HOME</a>
+                    <a href="gallery.html" class="nav-btn">GALLERY</a>
+                    <a href="playground.html" class="nav-btn">PLAYGROUND</a>
+                    <a href="discovery.html" class="nav-btn">DISCOVERY</a>
+                </div>
+            </div>
         </div>
-    </header>
+    </div>
 
     <!-- Main Content -->
     <div class="main-content">

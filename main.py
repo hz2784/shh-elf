@@ -464,21 +464,21 @@ def analyze_book_with_ai(book_title: str, author: str, user_level: str = "B2") -
     """使用AI分析任意书籍，获取第一段、难度、formal models等"""
 
     analysis_prompt = f"""
-    请分析《{book_title}》by {author} 这本书，为{user_level}水平的英语学习者提供以下信息：
+    Analyze the book "{book_title}" by {author} for English learners at {user_level} level. Provide the following information in English:
 
-    1. 找到或创建这本书真实的第一段话（约150-200词）
-    2. 评估CEFR难度等级 (A2/B1/B2/C1/C2)
-    3. 估算所需词汇量 (3000-10000)
-    4. 识别2-3个formal models（如：rational thinking, form-giving, illusion vs reality, social critique等）
-    5. 写一段吸引人的book talk推荐（100-150词，解释为什么这本书值得读）
+    1. Find or create the actual first paragraph of this book (approximately 150-200 words)
+    2. Assess CEFR difficulty level (A2/B1/B2/C1/C2)
+    3. Estimate required vocabulary size (3000-10000)
+    4. Identify 2-3 formal models (e.g., rational thinking, form-giving, illusion vs reality, social critique, etc.)
+    5. Write an engaging book talk recommendation (100-150 words, explaining why this book is worth reading)
 
-    请用JSON格式返回：
+    Return in JSON format in English:
     {{
-        "first_paragraph": "实际的第一段文字...",
+        "first_paragraph": "The actual first paragraph text...",
         "cefr_level": "B2",
         "estimated_vocabulary": 6000,
         "formal_models": ["model1", "model2", "model3"],
-        "book_talk": "这本书的推荐文字..."
+        "book_talk": "Book recommendation text in English..."
     }}
     """
 
