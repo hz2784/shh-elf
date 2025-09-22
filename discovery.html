@@ -326,6 +326,26 @@
                 flex-direction: column;
             }
         }
+
+        /* Language Switcher */
+        .lang-switch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+            z-index: 1000;
+        }
+
+        .lang-switch:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
     </style>
 </head>
 <body>
@@ -579,6 +599,315 @@
                 discoverBook();
             }
         });
+
+        // Language switching functionality
+        const translations = {
+            en: {
+                'discovery-title': 'BOOK TALK DISCOVERY',
+                'discovery-subtitle': 'Analyze Any Book for Language Learning',
+                'discovery-description': 'Enter any book title and author to get instant analysis:<br>First paragraph preview, audio narration, difficulty assessment, and formal models.',
+                'label-title': 'Book Title',
+                'label-author': 'Author',
+                'label-level': 'Your English Level',
+                'level-a2': 'A2 - Elementary',
+                'level-b1': 'B1 - Intermediate',
+                'level-b2': 'B2 - Upper Intermediate',
+                'level-c1': 'C1 - Advanced',
+                'level-c2': 'C2 - Proficient',
+                'discover-btn': 'Discover This Book',
+                'loading-text': 'Analyzing book... This may take a moment.',
+                'first-paragraph': 'First Paragraph',
+                'book-talk': 'Book Talk',
+                'formal-models': 'Formal Models',
+                'listen-sample': 'Listen to Sample',
+                'listen-book-talk': 'Listen to Book Talk',
+                'playing-sample': 'Playing Sample...',
+                'playing-book-talk': 'Playing Book Talk...',
+                'resume-sample': 'Resume Sample',
+                'resume-book-talk': 'Resume Book Talk',
+                'audio-error': 'Audio Error',
+                'error-both-fields': 'Please enter both book title and author.',
+                'error-analysis-failed': 'Failed to analyze book. Please try again.',
+                'error-audio-unavailable': 'Audio not available yet. Please try again in a moment.',
+                'placeholder-title': 'e.g., Pride and Prejudice',
+                'placeholder-author': 'e.g., Jane Austen',
+                'cefr-label': 'CEFR:',
+                'vocab-label': 'Vocabulary:',
+                'vocab-suffix': ' words',
+                'lang-btn': '中文'
+            },
+            zh: {
+                'discovery-title': '书籍对话发现',
+                'discovery-subtitle': '分析任何书籍以进行语言学习',
+                'discovery-description': '输入任何书名和作者即可获得即时分析：<br>首段预览、音频旁白、难度评估和正式模型。',
+                'label-title': '书名',
+                'label-author': '作者',
+                'label-level': '您的英语水平',
+                'level-a2': 'A2 - 初级',
+                'level-b1': 'B1 - 中级',
+                'level-b2': 'B2 - 中高级',
+                'level-c1': 'C1 - 高级',
+                'level-c2': 'C2 - 精通',
+                'discover-btn': '发现这本书',
+                'loading-text': '正在分析书籍... 这可能需要一些时间。',
+                'first-paragraph': '首段',
+                'book-talk': '书籍对话',
+                'formal-models': '正式模型',
+                'listen-sample': '收听示例',
+                'listen-book-talk': '收听书籍对话',
+                'playing-sample': '播放示例中...',
+                'playing-book-talk': '播放书籍对话中...',
+                'resume-sample': '继续示例',
+                'resume-book-talk': '继续书籍对话',
+                'audio-error': '音频错误',
+                'error-both-fields': '请输入书名和作者。',
+                'error-analysis-failed': '分析书籍失败。请再试一次。',
+                'error-audio-unavailable': '音频暂不可用。请稍后再试。',
+                'placeholder-title': '例如：傲慢与偏见',
+                'placeholder-author': '例如：简·奥斯汀',
+                'cefr-label': 'CEFR：',
+                'vocab-label': '词汇量：',
+                'vocab-suffix': ' 词',
+                'lang-btn': 'EN'
+            }
+        };
+
+        let currentLanguage = localStorage.getItem('language') || 'en';
+
+        function updateLanguage() {
+            const lang = translations[currentLanguage];
+
+            // Update static elements
+            document.querySelector('.discovery-title').textContent = lang['discovery-title'];
+            document.querySelector('.discovery-subtitle').textContent = lang['discovery-subtitle'];
+            document.querySelector('.discovery-description').innerHTML = lang['discovery-description'];
+
+            // Update form labels
+            document.querySelector('label[for="bookTitle"]').textContent = lang['label-title'];
+            document.querySelector('label[for="bookAuthor"]').textContent = lang['label-author'];
+            document.querySelector('label[for="userLevel"]').textContent = lang['label-level'];
+
+            // Update placeholders
+            document.getElementById('bookTitle').placeholder = lang['placeholder-title'];
+            document.getElementById('bookAuthor').placeholder = lang['placeholder-author'];
+
+            // Update select options
+            const selectOptions = document.querySelectorAll('#userLevel option');
+            if (selectOptions.length >= 5) {
+                selectOptions[0].textContent = lang['level-a2'];
+                selectOptions[1].textContent = lang['level-b1'];
+                selectOptions[2].textContent = lang['level-b2'];
+                selectOptions[3].textContent = lang['level-c1'];
+                selectOptions[4].textContent = lang['level-c2'];
+            }
+
+            // Update button
+            document.getElementById('discoverBtn').textContent = lang['discover-btn'];
+
+            // Update loading text
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            if (loadingSpinner) {
+                loadingSpinner.textContent = lang['loading-text'];
+            }
+
+            // Update section titles
+            const sectionTitles = document.querySelectorAll('.section-title');
+            if (sectionTitles.length >= 3) {
+                sectionTitles[0].textContent = lang['first-paragraph'];
+                sectionTitles[1].textContent = lang['book-talk'];
+                sectionTitles[2].textContent = lang['formal-models'];
+            }
+
+            // Update audio buttons
+            updateAudioButtons();
+
+            // Update language switcher button
+            const langBtn = document.querySelector('.lang-switch');
+            if (langBtn) {
+                langBtn.textContent = lang['lang-btn'];
+            }
+        }
+
+        function updateAudioButtons() {
+            const lang = translations[currentLanguage];
+            const sampleBtn = document.getElementById('sampleAudioBtn');
+            const talkBtn = document.getElementById('talkAudioBtn');
+
+            if (sampleBtn) {
+                const text = sampleBtn.textContent;
+                if (text.includes('Playing') || text.includes('播放')) {
+                    if (text.includes('Sample') || text.includes('示例')) {
+                        sampleBtn.textContent = lang['playing-sample'];
+                    }
+                } else if (text.includes('Resume') || text.includes('继续')) {
+                    if (text.includes('Sample') || text.includes('示例')) {
+                        sampleBtn.textContent = lang['resume-sample'];
+                    }
+                } else if (text.includes('Error') || text.includes('错误')) {
+                    sampleBtn.textContent = lang['audio-error'];
+                } else {
+                    sampleBtn.textContent = lang['listen-sample'];
+                }
+            }
+
+            if (talkBtn) {
+                const text = talkBtn.textContent;
+                if (text.includes('Playing') || text.includes('播放')) {
+                    if (text.includes('Talk') || text.includes('对话')) {
+                        talkBtn.textContent = lang['playing-book-talk'];
+                    }
+                } else if (text.includes('Resume') || text.includes('继续')) {
+                    if (text.includes('Talk') || text.includes('对话')) {
+                        talkBtn.textContent = lang['resume-book-talk'];
+                    }
+                } else if (text.includes('Error') || text.includes('错误')) {
+                    talkBtn.textContent = lang['audio-error'];
+                } else {
+                    talkBtn.textContent = lang['listen-book-talk'];
+                }
+            }
+        }
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'zh' : 'en';
+            localStorage.setItem('language', currentLanguage);
+            updateLanguage();
+        }
+
+        // Update discoverBook function to use translations
+        async function discoverBook() {
+            const lang = translations[currentLanguage];
+            const bookTitle = document.getElementById('bookTitle').value.trim();
+            const bookAuthor = document.getElementById('bookAuthor').value.trim();
+            const userLevel = document.getElementById('userLevel').value;
+
+            if (!bookTitle || !bookAuthor) {
+                showError(lang['error-both-fields']);
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('discoveryResults').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('discoverBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/discover-book`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        book_title: bookTitle,
+                        author: bookAuthor,
+                        user_level: userLevel
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Analysis failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentAnalysis = result;
+                displayResults(result);
+
+            } catch (error) {
+                console.error('Discovery error:', error);
+                showError(lang['error-analysis-failed']);
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('discoverBtn').disabled = false;
+            }
+        }
+
+        function displayResults(analysis) {
+            const lang = translations[currentLanguage];
+            document.getElementById('resultBookTitle').textContent = analysis.book_title;
+            document.getElementById('resultBookAuthor').textContent = `by ${analysis.author}`;
+            document.getElementById('resultCefrLevel').textContent = `${lang['cefr-label']} ${analysis.cefr_level}`;
+            document.getElementById('resultVocabSize').textContent = `${lang['vocab-label']} ${analysis.estimated_vocabulary}${lang['vocab-suffix']}`;
+            document.getElementById('resultFirstParagraph').textContent = analysis.first_paragraph;
+            document.getElementById('resultBookTalk').textContent = analysis.book_talk_text;
+
+            // Display formal models
+            const modelsContainer = document.getElementById('resultFormalModels');
+            modelsContainer.innerHTML = analysis.formal_models
+                .map(model => `<span class="formal-model-tag">${model}</span>`)
+                .join('');
+
+            document.getElementById('discoveryResults').style.display = 'block';
+        }
+
+        function playAudio(type) {
+            const lang = translations[currentLanguage];
+            if (!currentAnalysis) return;
+
+            const audioUrl = type === 'sample' ? currentAnalysis.sample_audio_url : currentAnalysis.book_talk_audio_url;
+            const button = type === 'sample' ? document.getElementById('sampleAudioBtn') : document.getElementById('talkAudioBtn');
+
+            // Check if clicking the same button that's currently playing
+            if (currentButton === button && currentAudio) {
+                if (currentAudio.paused) {
+                    // Resume playback
+                    currentAudio.play().catch(error => {
+                        console.error('Audio resume failed:', error);
+                        resetAudioButton(button, type);
+                    });
+                    button.textContent = type === 'sample' ? lang['playing-sample'] : lang['playing-book-talk'];
+                } else {
+                    // Pause playback
+                    currentAudio.pause();
+                    button.textContent = type === 'sample' ? lang['resume-sample'] : lang['resume-book-talk'];
+                }
+                return;
+            }
+
+            // Stop current audio if playing different button
+            if (currentAudio) {
+                currentAudio.pause();
+                if (currentButton) {
+                    const prevType = currentButton.id === 'sampleAudioBtn' ? 'sample' : 'talk';
+                    resetAudioButton(currentButton, prevType);
+                }
+            }
+
+            if (audioUrl.startsWith('http')) {
+                currentAudio = new Audio(audioUrl);
+                currentButton = button;
+                button.textContent = type === 'sample' ? lang['playing-sample'] : lang['playing-book-talk'];
+
+                currentAudio.play().catch(error => {
+                    console.error('Audio playback failed:', error);
+                    button.textContent = lang['audio-error'];
+                    setTimeout(() => {
+                        resetAudioButton(button, type);
+                    }, 2000);
+                });
+
+                currentAudio.onended = () => {
+                    resetAudioButton(button, type);
+                    currentAudio = null;
+                    currentButton = null;
+                };
+            } else {
+                showError(lang['error-audio-unavailable']);
+            }
+        }
+
+        function resetAudioButton(button, type) {
+            const lang = translations[currentLanguage];
+            button.textContent = type === 'sample' ? lang['listen-sample'] : lang['listen-book-talk'];
+        }
+
+        // Initialize language on load
+        window.addEventListener('DOMContentLoaded', function() {
+            updateLanguage();
+        });
     </script>
+
+    <!-- Language Switcher -->
+    <button class="lang-switch" onclick="toggleLanguage()">中文</button>
 </body>
 </html>

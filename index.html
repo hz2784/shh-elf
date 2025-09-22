@@ -509,6 +509,26 @@
                 gap: 10px;
             }
         }
+
+        /* Language Switcher */
+        .lang-switch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+            z-index: 1000;
+        }
+
+        .lang-switch:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
     </style>
 </head>
 <body>
@@ -1157,6 +1177,213 @@
             return false;
         }
 
+        // Language switching functionality
+        const translations = {
+            en: {
+                'terminal-title': 'SHH-ELF.EXE - READING REVOLUTION TERMINAL',
+                'login-btn': 'LOGIN',
+                'register-btn': 'REGISTER',
+                'logout-btn': 'LOGOUT',
+                'nav-home': 'HOME',
+                'nav-gallery': 'GALLERY',
+                'nav-playground': 'PLAYGROUND',
+                'nav-discovery': 'DISCOVERY',
+                'cmd-init': 'INITIALIZING_BOOK_DISCOVERY_PROTOCOL...',
+                'cmd-loading': 'LOADING_CURIOSITY_ENGINE...',
+                'cmd-ready': 'STATUS: READY_FOR_STORY_TRANSMISSION',
+                'tagline': 'SHH... A STORY\'S ABOUT TO BEGIN.',
+                'hero-desc': 'A Book Talk Tool to Spark Reading Through Curiosity and Connection',
+                'terminal-quote': 'Words create worlds. Let\'s explore them together.',
+                'system-modules': 'SYSTEM MODULES',
+                'gallery-header': 'BOOK_TALK_GALLERY.EXE',
+                'gallery-desc': 'Classic novels with difficulty ratings, sample readings, and expert analysis.',
+                'gallery-btn': 'EXPLORE GALLERY',
+                'playground-header': 'BOOK_TALK_PLAYGROUND.EXE',
+                'playground-desc': 'Generate personalized book recommendations and audio book talks.',
+                'playground-btn': 'CREATE RECOMMENDATIONS',
+                'discovery-header': 'BOOK_DISCOVERY.EXE',
+                'discovery-desc': 'Analyze any book for language learning with AI-powered insights.',
+                'discovery-btn': 'DISCOVER BOOKS',
+                'ready-header': 'READY TO START YOUR READING JOURNEY?',
+                'nav-btn-gallery': 'EXPLORE BOOK GALLERY',
+                'nav-btn-playground': 'CREATE BOOK TALKS',
+                'nav-btn-discovery': 'DISCOVER ANY BOOK',
+                'login-modal': 'LOGIN',
+                'register-modal': 'REGISTER',
+                'username-placeholder': 'USERNAME',
+                'password-placeholder': 'PASSWORD',
+                'email-placeholder': 'EMAIL',
+                'username-placeholder-reg': 'USERNAME (3-20 characters)',
+                'password-placeholder-reg': 'PASSWORD (min 6 characters)',
+                'email-verification': 'EMAIL VERIFICATION',
+                'user-loading': 'USER: LOADING...',
+                'registering': 'REGISTERING...',
+                'lang-btn': '中文'
+            },
+            zh: {
+                'terminal-title': 'SHH-ELF.EXE - 阅读革命终端',
+                'login-btn': '登录',
+                'register-btn': '注册',
+                'logout-btn': '登出',
+                'nav-home': '首页',
+                'nav-gallery': '画廊',
+                'nav-playground': '操场',
+                'nav-discovery': '发现',
+                'cmd-init': '正在初始化书籍发现协议...',
+                'cmd-loading': '正在加载好奇心引擎...',
+                'cmd-ready': '状态：准备好进行故事传输',
+                'tagline': 'SHH... 故事即将开始。',
+                'hero-desc': '通过好奇心和连接激发阅读的书籍对话工具',
+                'terminal-quote': '文字创造世界。让我们一起探索它们。',
+                'system-modules': '系统模块',
+                'gallery-header': '书籍对话画廊.EXE',
+                'gallery-desc': '经典小说配有难度评级、示例阅读和专家分析。',
+                'gallery-btn': '探索画廊',
+                'playground-header': '书籍对话操场.EXE',
+                'playground-desc': '生成个性化图书推荐和音频书籍对话。',
+                'playground-btn': '创建推荐',
+                'discovery-header': '书籍发现.EXE',
+                'discovery-desc': '使用AI驱动的洞察分析任何书籍以进行语言学习。',
+                'discovery-btn': '发现书籍',
+                'ready-header': '准备开始您的阅读之旅了吗？',
+                'nav-btn-gallery': '探索书籍画廊',
+                'nav-btn-playground': '创建书籍对话',
+                'nav-btn-discovery': '发现任何书籍',
+                'login-modal': '登录',
+                'register-modal': '注册',
+                'username-placeholder': '用户名',
+                'password-placeholder': '密码',
+                'email-placeholder': '邮箱',
+                'username-placeholder-reg': '用户名（3-20个字符）',
+                'password-placeholder-reg': '密码（至少6个字符）',
+                'email-verification': '邮箱验证',
+                'user-loading': '用户：加载中...',
+                'registering': '注册中...',
+                'lang-btn': 'EN'
+            }
+        };
+
+        let currentLanguage = localStorage.getItem('language') || 'en';
+
+        function updateLanguage() {
+            const lang = translations[currentLanguage];
+
+            // Update terminal title
+            document.querySelector('.terminal-title').textContent = lang['terminal-title'];
+
+            // Update navigation buttons
+            document.querySelector('.nav-btn[href="index.html"]').textContent = lang['nav-home'];
+            document.querySelector('.nav-btn[href="gallery.html"]').textContent = lang['nav-gallery'];
+            document.querySelector('.nav-btn[href="playground.html"]').textContent = lang['nav-playground'];
+            document.querySelector('.nav-btn[href="discovery.html"]').textContent = lang['nav-discovery'];
+
+            // Update user controls
+            const loginBtn = document.querySelector('button[onclick*="loginModal"]');
+            if (loginBtn) loginBtn.textContent = lang['login-btn'];
+
+            const registerBtn = document.querySelector('button[onclick*="registerModal"]');
+            if (registerBtn) registerBtn.textContent = lang['register-btn'];
+
+            const logoutBtn = document.querySelector('button[onclick="logout()"]');
+            if (logoutBtn) logoutBtn.textContent = lang['logout-btn'];
+
+            // Update command lines
+            const cmdLines = document.querySelectorAll('.cmd-line span:not(.cmd-prompt)');
+            if (cmdLines.length >= 3) {
+                cmdLines[0].textContent = ' ' + lang['cmd-init'];
+                cmdLines[1].textContent = ' ' + lang['cmd-loading'];
+                cmdLines[2].textContent = ' ' + lang['cmd-ready'];
+            }
+
+            // Update hero section
+            const tagline = document.querySelector('.tagline');
+            if (tagline) tagline.textContent = lang['tagline'];
+
+            const heroDesc = document.querySelector('.hero-description');
+            if (heroDesc) heroDesc.textContent = lang['hero-desc'];
+
+            // Update terminal quote
+            const terminalQuote = document.querySelector('.quote-text');
+            if (terminalQuote) terminalQuote.textContent = lang['terminal-quote'];
+
+            // Update section headers
+            const systemModules = document.querySelector('.section-header');
+            if (systemModules) systemModules.textContent = lang['system-modules'];
+
+            // Update feature windows
+            const windowHeaders = document.querySelectorAll('.window-header');
+            if (windowHeaders.length >= 3) {
+                windowHeaders[0].textContent = lang['gallery-header'];
+                windowHeaders[1].textContent = lang['playground-header'];
+                windowHeaders[2].textContent = lang['discovery-header'];
+            }
+
+            const featureContents = document.querySelectorAll('.feature-content');
+            if (featureContents.length >= 3) {
+                featureContents[0].textContent = lang['gallery-desc'];
+                featureContents[1].textContent = lang['playground-desc'];
+                featureContents[2].textContent = lang['discovery-desc'];
+            }
+
+            const featureBtns = document.querySelectorAll('.feature-btn');
+            if (featureBtns.length >= 3) {
+                featureBtns[0].textContent = lang['gallery-btn'];
+                featureBtns[1].textContent = lang['playground-btn'];
+                featureBtns[2].textContent = lang['discovery-btn'];
+            }
+
+            // Update navigation section
+            const navHeader = document.querySelector('.navigation-header');
+            if (navHeader) navHeader.textContent = lang['ready-header'];
+
+            const navButtons = document.querySelectorAll('.nav-button');
+            if (navButtons.length >= 3) {
+                navButtons[0].textContent = lang['nav-btn-gallery'];
+                navButtons[1].textContent = lang['nav-btn-playground'];
+                navButtons[2].textContent = lang['nav-btn-discovery'];
+            }
+
+            // Update modal headers
+            const loginModal = document.querySelector('#loginModal .modal-header');
+            if (loginModal) loginModal.textContent = lang['login-modal'];
+
+            const registerModal = document.querySelector('#registerModal .modal-header');
+            if (registerModal) registerModal.textContent = lang['register-modal'];
+
+            // Update form placeholders
+            const loginUsername = document.getElementById('loginUsername');
+            if (loginUsername) loginUsername.placeholder = lang['username-placeholder'];
+
+            const loginPassword = document.getElementById('loginPassword');
+            if (loginPassword) loginPassword.placeholder = lang['password-placeholder'];
+
+            const registerUsername = document.getElementById('registerUsername');
+            if (registerUsername) registerUsername.placeholder = lang['username-placeholder-reg'];
+
+            const registerEmail = document.getElementById('registerEmail');
+            if (registerEmail) registerEmail.placeholder = lang['email-placeholder'];
+
+            const registerPassword = document.getElementById('registerPassword');
+            if (registerPassword) registerPassword.placeholder = lang['password-placeholder-reg'];
+
+            // Update form buttons
+            const loginFormBtn = document.querySelector('#loginForm button[type="submit"]');
+            if (loginFormBtn) loginFormBtn.textContent = lang['login-btn'];
+
+            const registerFormBtn = document.querySelector('#registerForm button[type="submit"]');
+            if (registerFormBtn) registerFormBtn.textContent = lang['register-btn'];
+
+            // Update language switcher button
+            const langBtn = document.querySelector('.lang-switch');
+            if (langBtn) langBtn.textContent = lang['lang-btn'];
+        }
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'zh' : 'en';
+            localStorage.setItem('language', currentLanguage);
+            updateLanguage();
+        }
+
         // Initialize
         window.onload = function() {
             checkAuth(); // Check for saved authentication
@@ -1166,9 +1393,14 @@
                 checkUrlHash(); // Check if redirected for login/register only if no auto-login
             }
 
+            updateLanguage(); // Set initial language
+
             console.log('SHH-ELF.EXE MAIN TERMINAL LOADED');
             console.log('SYSTEM MODULES: READY');
         };
     </script>
+
+    <!-- Language Switcher -->
+    <button class="lang-switch" onclick="toggleLanguage()">中文</button>
 </body>
 </html>
