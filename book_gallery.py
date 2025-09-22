@@ -71,5 +71,19 @@ SAMPLE_BOOKS = [
         "publication_year": 1925,
         "page_count": 180,
         "goodreads_rating": 3.9
+    },
+    {
+        "title": "My Year of Rest and Relaxation",
+        "author": "Ottessa Moshfegh",
+        "isbn": "9780143133315",
+        "cefr_level": "B2",
+        "estimated_vocabulary": 6500,
+        "formal_models": ["nihilism", "social critique", "psychological realism"],
+        "sample_paragraph": "Whenever I woke up, night or day, I'd shuffle through the bright marble lobby of my building on the Upper East Side, past the boring fake flower arrangement on the coffee table, past the doorman, and onto the street, and roam around, my eyes half closed, always drifting toward the closest place I could sit down. In Rite Aid, I'd sit in the back where the chairs were lined up for customers waiting for prescriptions. The pharmacist probably thought I was waiting to buy OxyContin or Adderall or whatever he thought a young woman like me would want. But I was just sitting there, just resting. I'd sit until the pharmacist asked if he could help me, then I'd buy a tube of lip balm or some mints and leave. I was very tired. Or I'd take the Stairmaster until I couldn't anymore, sometimes forty minutes, sometimes an hour and a half. I'd read magazines and go home. I was trying to get tired enough to sleep. This was in the beginning, when I first started taking the pills. I was supposed to take them only when I felt anxious, but I felt anxious all the time, so I was always taking them.",
+        "book_talk_text": "What if you could sleep for a year and wake up to a completely new life? Ottessa Moshfegh's darkly funny novel follows a young woman who decides to hibernate through her problems. This brilliant exploration of modern malaise and privilege will challenge your assumptions about happiness, ambition, and what it means to be truly awake...",
+        "genre": "Contemporary Fiction",
+        "publication_year": 2018,
+        "page_count": 304,
+        "goodreads_rating": 3.7
     }
 ]
