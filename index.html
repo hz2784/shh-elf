@@ -310,6 +310,86 @@
             transform: translateY(-5px);
         }
 
+        /* Bookshelf Analysis Styles */
+        .upload-options {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border: 2px solid #00ff00;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #008000);
+            animation: loading 3s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        .book-item {
+            background: #222;
+            border: 1px solid #00ff00;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .book-title {
+            color: #00ff00;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .book-author {
+            color: #888;
+            font-style: italic;
+        }
+
+        .recommendation-item {
+            background: #1a1a1a;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+        }
+
+        .recommendation-title {
+            color: #00ff00;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .match-score {
+            background: #00ff00;
+            color: #000;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .preferences-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 1px solid #666;
+        }
+
         .window-header {
             background: var(--primary-green);
             color: var(--bg-black);
@@ -630,6 +710,18 @@
                         <span class="feature-btn">DISCOVER BOOKS</span>
                     </div>
                 </a>
+
+                <div class="feature-window" onclick="openShelfAnalysis()">
+                    <div class="window-header">SHELF_ANALYZER.EXE</div>
+                    <div class="feature-content">
+                        📸 Take a photo of your bookshelf and let AI analyze your reading preferences!
+                        Get personalized book recommendations based on your existing collection.
+                        Smart recognition + preference analysis + curated suggestions.
+                    </div>
+                    <div class="feature-action">
+                        <span class="feature-btn">ANALYZE BOOKSHELF</span>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -686,6 +778,71 @@
                 </div>
                 <button type="submit" class="pixel-btn" style="width: 100%;">REGISTER</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Bookshelf Analysis Modal -->
+    <div id="shelfAnalysisModal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <button class="modal-close" onclick="hideModal('shelfAnalysisModal')">&times;</button>
+            <div class="modal-header">📸 SHELF_ANALYZER.EXE</div>
+
+            <div id="uploadSection" class="upload-section">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <p>Take a photo of your bookshelf or upload an image</p>
+                    <small style="color: #666;">AI will analyze your collection and recommend new books!</small>
+                </div>
+
+                <!-- Camera/Upload Options -->
+                <div class="upload-options">
+                    <button id="cameraBtn" class="pixel-btn" style="margin: 5px;" onclick="startCamera()">
+                        📷 USE CAMERA
+                    </button>
+                    <label for="fileInput" class="pixel-btn" style="margin: 5px; display: inline-block; cursor: pointer;">
+                        📁 UPLOAD IMAGE
+                    </label>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+                </div>
+
+                <!-- Camera Video -->
+                <video id="cameraVideo" style="width: 100%; max-width: 400px; margin: 20px 0; border: 2px solid #00ff00; display: none;" autoplay playsinline></video>
+                <canvas id="photoCanvas" style="display: none;"></canvas>
+
+                <div id="cameraControls" style="text-align: center; display: none; margin: 10px 0;">
+                    <button class="pixel-btn" onclick="takePhoto()">📸 CAPTURE</button>
+                    <button class="pixel-btn" onclick="stopCamera()">❌ CANCEL</button>
+                </div>
+
+                <!-- Preview Section -->
+                <div id="imagePreview" style="text-align: center; margin: 20px 0; display: none;">
+                    <img id="previewImage" style="max-width: 100%; max-height: 300px; border: 2px solid #00ff00;">
+                    <div style="margin: 10px 0;">
+                        <button class="pixel-btn" onclick="analyzeBookshelf()">🤖 ANALYZE BOOKSHELF</button>
+                        <button class="pixel-btn" onclick="resetUpload()">🔄 NEW PHOTO</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Section -->
+            <div id="loadingSection" style="text-align: center; display: none; padding: 40px;">
+                <div style="font-size: 3rem;">🤖</div>
+                <div style="margin: 20px 0;">
+                    <div style="color: #00ff00;">ANALYZING YOUR BOOKSHELF...</div>
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 10px;">
+                        • Identifying books<br>
+                        • Analyzing reading preferences<br>
+                        • Generating recommendations
+                    </div>
+                </div>
+                <div class="loading-bar">
+                    <div class="loading-progress"></div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" style="display: none; max-height: 500px; overflow-y: auto;">
+                <!-- Results will be inserted here -->
+            </div>
         </div>
     </div>
 
@@ -1178,6 +1335,195 @@
         }
 
         // Language switching functionality
+        // Bookshelf Analysis Functions
+        let currentImageFile = null;
+        let cameraStream = null;
+
+        function openShelfAnalysis() {
+            showModal('shelfAnalysisModal');
+            resetUpload();
+        }
+
+        function resetUpload() {
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('cameraVideo').style.display = 'none';
+            document.getElementById('cameraControls').style.display = 'none';
+
+            currentImageFile = null;
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: { ideal: 'environment' } // Back camera preferred
+                    }
+                };
+
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const video = document.getElementById('cameraVideo');
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+                document.getElementById('cameraControls').style.display = 'block';
+            } catch (error) {
+                console.error('Camera access error:', error);
+                alert('Unable to access camera. Please use the upload option instead.');
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            document.getElementById('cameraVideo').style.display = 'none';
+            document.getElementById('cameraControls').style.display = 'none';
+        }
+
+        function takePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('photoCanvas');
+            const context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+
+            canvas.toBlob(function(blob) {
+                currentImageFile = new File([blob], 'bookshelf.jpg', { type: 'image/jpeg' });
+                showImagePreview(URL.createObjectURL(blob));
+            }, 'image/jpeg', 0.8);
+
+            stopCamera();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                currentImageFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showImagePreview(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert('Please select a valid image file.');
+            }
+        }
+
+        function showImagePreview(imageSrc) {
+            const previewImg = document.getElementById('previewImage');
+            previewImg.src = imageSrc;
+            document.getElementById('imagePreview').style.display = 'block';
+        }
+
+        async function analyzeBookshelf() {
+            if (!currentImageFile) {
+                alert('Please select or capture an image first.');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('loadingSection').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', currentImageFile);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/analyze-bookshelf`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Analysis failed: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                displayAnalysisResults(result);
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('Analysis failed. Please try again with a clearer image.');
+                resetUpload();
+            }
+        }
+
+        function displayAnalysisResults(result) {
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+
+            const resultsHtml = `
+                <div class="analysis-results">
+                    <h3 style="color: #00ff00; text-align: center; margin-bottom: 20px;">
+                        📚 BOOKSHELF ANALYSIS COMPLETE
+                    </h3>
+
+                    <div class="preferences-section">
+                        <h4 style="color: #00ff00; margin-bottom: 15px;">📊 Your Reading Preferences</h4>
+                        <p><strong>Favorite Genres:</strong> ${result.reading_preferences.favorite_genres?.join(', ') || 'Not detected'}</p>
+                        <p><strong>Reading Level:</strong> ${result.reading_preferences.reading_level || 'Not detected'}</p>
+                        <p><strong>Interests:</strong> ${result.reading_preferences.interests?.join(', ') || 'Not detected'}</p>
+                        <p><strong>Author Preferences:</strong> ${result.reading_preferences.author_preferences || 'Not detected'}</p>
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #00ff00; margin-bottom: 15px;">📖 Detected Books (${result.detected_books.length})</h4>
+                        ${result.detected_books.map(book => `
+                            <div class="book-item">
+                                <div class="book-title">${book.title}</div>
+                                <div class="book-author">by ${book.author}</div>
+                                <div style="margin-top: 5px;">
+                                    <span style="color: #666;">Genre: ${book.genre}</span>
+                                    <span class="match-score" style="margin-left: 10px;">${Math.round(book.confidence * 100)}% confidence</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #00ff00; margin-bottom: 15px;">🎯 Recommended Books</h4>
+                        ${result.recommended_books.map(rec => `
+                            <div class="recommendation-item">
+                                <div class="recommendation-title">${rec.title}</div>
+                                <div class="book-author">by ${rec.author}</div>
+                                <div style="margin: 10px 0; color: #ccc;">
+                                    ${rec.reason}
+                                </div>
+                                <div>
+                                    <span class="match-score">${Math.round(rec.match_score * 100)}% match</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="preferences-section">
+                        <h4 style="color: #00ff00; margin-bottom: 10px;">💡 Analysis Summary</h4>
+                        <p style="line-height: 1.6;">${result.analysis_summary}</p>
+                        <p style="margin-top: 10px; color: #888; font-size: 0.9rem;">
+                            Analysis confidence: ${Math.round(result.confidence_score * 100)}%
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="pixel-btn" onclick="resetUpload()">📸 ANALYZE ANOTHER SHELF</button>
+                        <button class="pixel-btn" onclick="hideModal('shelfAnalysisModal')" style="margin-left: 10px;">✓ DONE</button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('resultsSection').innerHTML = resultsHtml;
+        }
+
         const translations = {
             en: {
                 'terminal-title': 'SHH-ELF.EXE - READING REVOLUTION TERMINAL',

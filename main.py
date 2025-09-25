@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
@@ -16,6 +16,9 @@ import urllib.parse
 import json
 import cloudinary
 import cloudinary.uploader
+import base64
+import io
+from PIL import Image
 
 from database import (
     create_tables, get_db, get_user_by_email, get_user_by_username,
@@ -233,6 +236,15 @@ class BookDiscoveryResponse(BaseModel):
     cefr_level: str
     estimated_vocabulary: int
     formal_models: List[str]
+    analysis_id: str
+
+class ShelfAnalysisResponse(BaseModel):
+    success: bool
+    detected_books: List[dict]
+    reading_preferences: dict
+    recommended_books: List[dict]
+    analysis_summary: str
+    confidence_score: float
     analysis_id: str
 
 # GPT生成推荐文本
@@ -614,6 +626,145 @@ def openai_english_text_to_speech(text: str, filename: str) -> str:
     except Exception as e:
         print(f"OpenAI TTS错误: {str(e)}")
         raise HTTPException(status_code=500, detail=f"英文语音生成错误: {str(e)}")
+
+# 书架智能分析功能
+def analyze_bookshelf_image(image_base64: str) -> dict:
+    """使用OpenAI Vision API分析书架图片，识别书籍并分析偏好"""
+
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    analysis_prompt = """
+    请仔细分析这张书架照片，并执行以下任务：
+
+    1. 识别所有可见的书籍标题和作者（如果可见）
+    2. 分析用户的阅读偏好模式：
+       - 最喜爱的体裁（科幻、文学、历史等）
+       - 偏好的作者类型和风格
+       - 阅读难度水平
+       - 主题兴趣（科技、人文、商业等）
+    3. 基于识别的书籍，推荐3-5本相似或互补的书籍
+    4. 提供分析总结和置信度评分
+
+    请以JSON格式返回结果：
+    {
+        "detected_books": [
+            {"title": "书名", "author": "作者", "genre": "体裁", "confidence": 0.9}
+        ],
+        "reading_preferences": {
+            "favorite_genres": ["科幻", "历史"],
+            "reading_level": "高级",
+            "interests": ["科技", "哲学"],
+            "author_preferences": "偏爱欧美作者"
+        },
+        "recommended_books": [
+            {
+                "title": "推荐书名",
+                "author": "作者",
+                "reason": "推荐理由",
+                "match_score": 0.85
+            }
+        ],
+        "analysis_summary": "基于您的书架分析总结...",
+        "confidence_score": 0.8
+    }
+    """
+
+    data = {
+        "model": "gpt-4o-mini",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": analysis_prompt
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image_base64}"
+                        }
+                    }
+                ]
+            }
+        ],
+        "max_tokens": 1500,
+        "temperature": 0.3
+    }
+
+    try:
+        print("🔍 开始分析书架图片...")
+        response = requests.post("https://api.openai.com/v1/chat/completions",
+                               headers=headers, json=data)
+        response.raise_for_status()
+        result = response.json()
+
+        ai_content = result['choices'][0]['message']['content']
+        print(f"AI分析结果: {ai_content}")
+
+        # 解析JSON响应
+        try:
+            start = ai_content.find('{')
+            end = ai_content.rfind('}') + 1
+            json_str = ai_content[start:end]
+            analysis_result = json.loads(json_str)
+            return analysis_result
+        except:
+            # 如果JSON解析失败，返回默认结构
+            return {
+                "detected_books": [{"title": "无法识别", "author": "未知", "genre": "未知", "confidence": 0.5}],
+                "reading_preferences": {
+                    "favorite_genres": ["综合"],
+                    "reading_level": "中级",
+                    "interests": ["综合"],
+                    "author_preferences": "多样化"
+                },
+                "recommended_books": [
+                    {
+                        "title": "推荐暂不可用",
+                        "author": "系统",
+                        "reason": "图片分析遇到困难，请尝试更清晰的书架照片",
+                        "match_score": 0.5
+                    }
+                ],
+                "analysis_summary": "抱歉，无法完全分析您的书架。请确保照片清晰，书名可见。",
+                "confidence_score": 0.3
+            }
+    except Exception as e:
+        print(f"书架分析错误: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"书架分析失败: {str(e)}")
+
+def process_uploaded_image(file: UploadFile) -> str:
+    """处理上传的图片文件，转换为base64"""
+    try:
+        # 读取图片文件
+        image_data = file.file.read()
+
+        # 使用PIL处理图片（可选：调整大小以节省API调用成本）
+        image = Image.open(io.BytesIO(image_data))
+
+        # 如果图片太大，调整大小
+        max_size = (1024, 1024)
+        image.thumbnail(max_size, Image.Resampling.LANCZOS)
+
+        # 转换为RGB模式（如果是RGBA等）
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+
+        # 保存为JPEG格式到内存
+        buffer = io.BytesIO()
+        image.save(buffer, format='JPEG', quality=85)
+        buffer.seek(0)
+
+        # 转换为base64
+        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        return image_base64
+    except Exception as e:
+        print(f"图片处理错误: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"图片处理失败: {str(e)}")
 
 # API路由
 
@@ -1552,6 +1703,52 @@ async def discover_book(request: BookDiscoveryRequest, current_user: User = Depe
     except Exception as e:
         print(f"Discovery error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Book discovery failed: {str(e)}")
+
+@app.post("/api/analyze-bookshelf", response_model=ShelfAnalysisResponse)
+async def analyze_bookshelf(
+    file: UploadFile = File(...),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """书架智能分析API - 上传书架照片，获取阅读偏好和推荐"""
+
+    # 验证文件类型
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=400,
+            detail="请上传图片文件（支持 JPG, PNG, WebP 等格式）"
+        )
+
+    try:
+        print(f"📸 接收书架图片分析请求：{file.filename}")
+
+        # 处理上传的图片
+        image_base64 = process_uploaded_image(file)
+
+        # 使用AI分析书架图片
+        analysis_result = analyze_bookshelf_image(image_base64)
+
+        # 生成分析ID
+        analysis_id = hashlib.md5(f"shelf_{current_user.id if current_user else 'anonymous'}_{file.filename}".encode()).hexdigest()[:12]
+
+        # 构建响应
+        response = ShelfAnalysisResponse(
+            success=True,
+            detected_books=analysis_result.get("detected_books", []),
+            reading_preferences=analysis_result.get("reading_preferences", {}),
+            recommended_books=analysis_result.get("recommended_books", []),
+            analysis_summary=analysis_result.get("analysis_summary", "分析完成"),
+            confidence_score=analysis_result.get("confidence_score", 0.8),
+            analysis_id=analysis_id
+        )
+
+        print(f"✅ 书架分析完成，检测到 {len(response.detected_books)} 本书")
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"书架分析处理失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"书架分析失败: {str(e)}")
 
 @app.get("/api/health")
 async def health_check():
