@@ -627,53 +627,126 @@ def openai_english_text_to_speech(text: str, filename: str) -> str:
         print(f"OpenAI TTS错误: {str(e)}")
         raise HTTPException(status_code=500, detail=f"英文语音生成错误: {str(e)}")
 
-# 书架智能分析功能
+# OCR文字提取功能
+def extract_text_from_bookshelf(image_base64: str) -> str:
+    """使用OCR从书架图片中提取文字"""
+    try:
+        import pytesseract
+        import cv2
+        import numpy as np
+
+        # 解码base64图片
+        image_data = base64.b64decode(image_base64)
+        nparr = np.frombuffer(image_data, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        # 图像预处理，提高OCR效果
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # 增强对比度
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        gray = clahe.apply(gray)
+
+        # 降噪
+        denoised = cv2.fastNlMeansDenoising(gray)
+
+        # 锐化
+        kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+        sharpened = cv2.filter2D(denoised, -1, kernel)
+
+        # 配置OCR参数
+        custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789一二三四五六七八九十百千万亿《》（）()[]【】：:：，、。！？.,!?-—'
+
+        # 提取文字
+        text = pytesseract.image_to_string(sharpened, lang='chi_sim+eng', config=custom_config)
+
+        print(f"📖 OCR提取的文字: {text[:200]}...")
+        return text.strip()
+
+    except Exception as e:
+        print(f"OCR提取失败: {str(e)}")
+        return ""
+
+# 书架智能分析功能 - OCR + AI混合方案
 def analyze_bookshelf_image(image_base64: str) -> dict:
-    """使用OpenAI Vision API分析书架图片，识别书籍并分析偏好"""
+    """使用OCR + AI混合方案分析书架图片，识别书籍并分析偏好"""
+
+    # 第一步：使用OCR提取文字
+    ocr_text = extract_text_from_bookshelf(image_base64)
 
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
 
-    analysis_prompt = """
-    请仔细分析这张书架照片，并执行以下任务：
+    # 根据OCR结果调整分析策略
+    if ocr_text and len(ocr_text.strip()) > 20:
+        analysis_prompt = f"""
+        我已经通过OCR技术从书架图片中提取了以下文字内容：
 
-    1. 识别所有可见的书籍标题和作者（如果可见）
-    2. 分析用户的阅读偏好模式：
-       - 最喜爱的体裁（科幻、文学、历史等）
-       - 偏好的作者类型和风格
-       - 阅读难度水平
-       - 主题兴趣（科技、人文、商业等）
-    3. 基于识别的书籍，推荐3-5本相似或互补的书籍
-    4. 提供分析总结和置信度评分
+        OCR提取的文字：
+        {ocr_text}
 
-    请以JSON格式返回结果：
-    {
-        "detected_books": [
-            {"title": "书名", "author": "作者", "genre": "体裁", "confidence": 0.9}
-        ],
-        "reading_preferences": {
-            "favorite_genres": ["科幻", "历史"],
-            "reading_level": "高级",
-            "interests": ["科技", "哲学"],
-            "author_preferences": "偏爱欧美作者"
-        },
-        "recommended_books": [
-            {
-                "title": "推荐书名",
-                "author": "作者",
-                "reason": "推荐理由",
-                "match_score": 0.85
-            }
-        ],
-        "analysis_summary": "基于您的书架分析总结...",
-        "confidence_score": 0.8
-    }
-    """
+        请同时结合图片和上述OCR文字来分析这个书架，执行以下任务：
+
+        分析策略：
+        1. 优先使用OCR提取的文字识别书名和作者
+        2. 结合图片视觉信息验证和补充OCR结果
+        3. 从OCR文字中识别完整或部分书名
+        4. 分析书名的语言（中文/英文）和主题类型
+
+        任务：
+        1. 从OCR文字和图片中识别书籍：
+           - 提取完整的书名和作者名
+           - 识别部分可见的书名关键词
+           - 推测书籍的体裁类型
+
+        2. 分析阅读偏好：
+           - 基于识别的书名分析体裁偏好
+           - 判断阅读水平和专业程度
+           - 识别语言偏好和主题兴趣
+
+        3. 推荐相关书籍（3-5本）
+        4. 提供详细的分析总结
+
+        请以JSON格式返回结果：
+        {{
+            "detected_books": [
+                {{"title": "从OCR或图片识别的书名", "author": "作者", "genre": "体裁", "confidence": 0.8}}
+            ],
+            "reading_preferences": {{
+                "favorite_genres": ["基于识别书籍的体裁偏好"],
+                "reading_level": "基于书籍类型的阅读水平",
+                "interests": ["基于书名的兴趣领域"],
+                "author_preferences": "作者偏好分析"
+            }},
+            "recommended_books": [
+                {{
+                    "title": "推荐书名",
+                    "author": "作者",
+                    "reason": "基于识别书籍的推荐理由",
+                    "match_score": 0.8
+                }}
+            ],
+            "analysis_summary": "基于OCR文字和图片的综合分析...",
+            "confidence_score": 0.8
+        }}
+        """
+    else:
+        analysis_prompt = """
+        OCR文字提取效果不佳，主要依靠图片视觉分析。请仔细观察书架照片中的所有可见信息：
+
+        分析重点：
+        - 书脊上任何可见的文字或字符
+        - 书籍的颜色、厚度、大小
+        - 出版社标识或设计风格
+        - 书籍的摆放和组织方式
+
+        请尽力从视觉特征推测书籍类型和用户偏好，以JSON格式返回分析结果。
+        """
 
     data = {
-        "model": "gpt-4o-mini",
+        "model": "gpt-4o",  # 升级到完整版GPT-4o，视觉理解能力更强
         "messages": [
             {
                 "role": "user",
@@ -685,14 +758,15 @@ def analyze_bookshelf_image(image_base64: str) -> dict:
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{image_base64}"
+                            "url": f"data:image/jpeg;base64,{image_base64}",
+                            "detail": "high"  # 高清晰度分析
                         }
                     }
                 ]
             }
         ],
-        "max_tokens": 1500,
-        "temperature": 0.3
+        "max_tokens": 2000,
+        "temperature": 0.2
     }
 
     try:
@@ -713,54 +787,82 @@ def analyze_bookshelf_image(image_base64: str) -> dict:
             analysis_result = json.loads(json_str)
             return analysis_result
         except:
-            # 如果JSON解析失败，返回默认结构
+            # 如果JSON解析失败，返回默认结构，包含OCR提取的部分信息
+            ocr_info = f"\n\nOCR提取信息: {ocr_text[:100]}..." if ocr_text else ""
             return {
-                "detected_books": [{"title": "无法识别", "author": "未知", "genre": "未知", "confidence": 0.5}],
+                "detected_books": [{"title": "识别困难", "author": "未知", "genre": "混合", "confidence": 0.4}],
                 "reading_preferences": {
-                    "favorite_genres": ["综合"],
+                    "favorite_genres": ["综合阅读"],
                     "reading_level": "中级",
-                    "interests": ["综合"],
-                    "author_preferences": "多样化"
+                    "interests": ["多元化"],
+                    "author_preferences": "多样化作者"
                 },
                 "recommended_books": [
                     {
-                        "title": "推荐暂不可用",
-                        "author": "系统",
-                        "reason": "图片分析遇到困难，请尝试更清晰的书架照片",
-                        "match_score": 0.5
+                        "title": "建议重新拍照",
+                        "author": "系统建议",
+                        "reason": "当前照片清晰度不足，建议在更好的光线下重新拍摄，确保书名清晰可见",
+                        "match_score": 0.3
                     }
                 ],
-                "analysis_summary": "抱歉，无法完全分析您的书架。请确保照片清晰，书名可见。",
-                "confidence_score": 0.3
+                "analysis_summary": f"分析遇到困难。OCR和图像识别效果不佳，建议：1.确保光线充足 2.书名清晰可见 3.正面拍摄避免反光{ocr_info}",
+                "confidence_score": 0.2
             }
     except Exception as e:
         print(f"书架分析错误: {str(e)}")
         raise HTTPException(status_code=500, detail=f"书架分析失败: {str(e)}")
 
 def process_uploaded_image(file: UploadFile) -> str:
-    """处理上传的图片文件，转换为base64"""
+    """处理上传的图片文件，转换为base64并增强清晰度"""
     try:
         # 读取图片文件
         image_data = file.file.read()
 
-        # 使用PIL处理图片（可选：调整大小以节省API调用成本）
+        # 使用PIL处理图片
         image = Image.open(io.BytesIO(image_data))
 
-        # 如果图片太大，调整大小
-        max_size = (1024, 1024)
-        image.thumbnail(max_size, Image.Resampling.LANCZOS)
+        print(f"📸 原始图片尺寸: {image.size}, 模式: {image.mode}")
 
         # 转换为RGB模式（如果是RGBA等）
         if image.mode != 'RGB':
             image = image.convert('RGB')
 
-        # 保存为JPEG格式到内存
+        # 图像增强处理，提高书名识别率
+        from PIL import ImageEnhance, ImageFilter
+
+        # 增强对比度，让文字更清晰
+        enhancer = ImageEnhance.Contrast(image)
+        image = enhancer.enhance(1.2)  # 增强对比度20%
+
+        # 增强锐度，让书脊文字更清晰
+        enhancer = ImageEnhance.Sharpness(image)
+        image = enhancer.enhance(1.3)  # 增强锐度30%
+
+        # 轻微增强亮度，改善光线不足的情况
+        enhancer = ImageEnhance.Brightness(image)
+        image = enhancer.enhance(1.1)  # 增强亮度10%
+
+        # 智能调整大小：保持足够清晰度的同时控制文件大小
+        original_size = image.size
+        max_dimension = 1200  # 提高最大尺寸以保持文字清晰度
+
+        if max(original_size) > max_dimension:
+            ratio = max_dimension / max(original_size)
+            new_size = (int(original_size[0] * ratio), int(original_size[1] * ratio))
+            image = image.resize(new_size, Image.Resampling.LANCZOS)
+            print(f"📸 调整后图片尺寸: {image.size}")
+
+        # 保存为JPEG格式，使用较高质量以保持文字清晰度
         buffer = io.BytesIO()
-        image.save(buffer, format='JPEG', quality=85)
+        image.save(buffer, format='JPEG', quality=90, optimize=True)
         buffer.seek(0)
+
+        print(f"📸 处理后图片大小: {len(buffer.getvalue())} bytes")
 
         # 转换为base64
         image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        print(f"📸 Base64编码完成，长度: {len(image_base64)}")
+
         return image_base64
     except Exception as e:
         print(f"图片处理错误: {str(e)}")
