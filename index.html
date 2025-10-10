@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHH-ELF.EXE :: Reading Revolution Terminal</title>
+    <meta name="description" content="A Book Talk Tool to Spark Reading Through Curiosity and Connection">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-green: #00ff00;
+            --dark-green: #008000;
+            --bg-black: #000000;
+            --bg-dark: #111111;
+            --white: #ffffff;
+            --gray: #333333;
+            --light-gray: #666666;
+            --pixel-size: 2px;
+        }
+
+        body {
+            font-family: 'VT323', 'Courier New', monospace;
+            background: var(--bg-black);
+            color: var(--primary-green);
+            line-height: 1.4;
+            font-size: 18px;
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
+
+        /* Scanlines Effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                transparent 50%,
+                rgba(0, 255, 0, 0.03) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* CRT Flicker */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            98% { opacity: 0.98; }
+            99% { opacity: 1; }
+        }
+
+        body {
+            animation: flicker 3s infinite;
+        }
+
+        /* Header Terminal */
+        .terminal-header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--bg-black);
+            border-bottom: 2px solid var(--primary-green);
+            padding: 8px 16px;
+            z-index: 100;
+            font-size: 14px;
+        }
+
+        .terminal-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            color: var(--primary-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .user-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-right: 20px;
+        }
+
+        .user-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 8px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .username-display {
+            color: var(--primary-green);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 12px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 40px;
+            padding: 20px;
+        }
+
+        /* Command Prompt Style */
+        .cmd-line {
+            color: var(--primary-green);
+            margin: 10px 0;
+            font-family: 'VT323', monospace;
+        }
+
+        .cmd-prompt {
+            color: var(--dark-green);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 40px 20px;
+            text-align: center;
+            border: 2px solid var(--primary-green);
+            margin: 20px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 0, 0.05) 2px,
+                rgba(0, 255, 0, 0.05) 4px
+            );
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0px var(--dark-green);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 5px var(--primary-green); }
+            to { text-shadow: 0 0 20px var(--primary-green), 0 0 30px var(--primary-green); }
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            color: var(--white);
+            animation: typewriter 3s steps(40);
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid var(--primary-green);
+        }
+
+        @keyframes typewriter {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        .hero-description {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            color: var(--white);
+        }
+
+        /* Pixel Button */
+        .pixel-btn {
+            background: var(--bg-black);
+            color: var(--primary-green);
+            border: 3px solid var(--primary-green);
+            padding: 12px 24px;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            box-shadow: 4px 4px 0px var(--dark-green);
+            margin: 10px;
+        }
+
+        .pixel-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--dark-green);
+        }
+
+        .pixel-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
+        }
+
+        /* Terminal Quote */
+        .terminal-quote {
+            margin: 40px 20px;
+            padding: 20px;
+            border: 2px solid var(--light-gray);
+            background: var(--bg-dark);
+            font-style: italic;
+            text-align: center;
+            position: relative;
+        }
+
+        .terminal-quote::before {
+            content: "QUOTE.TXT";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: var(--bg-black);
+            color: var(--light-gray);
+            padding: 0 8px;
+            font-size: 12px;
+        }
+
+        /* Features Grid */
+        .features-section {
+            padding: 40px 20px;
+        }
+
+        .section-header {
+            text-align: center;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 40px;
+            color: var(--white);
+            border-bottom: 2px solid var(--primary-green);
+            padding-bottom: 10px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-window {
+            border: 2px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 20px;
+            position: relative;
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .feature-window:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+            transform: translateY(-5px);
+        }
+
+        /* Bookshelf Analysis Styles */
+        .upload-options {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border: 2px solid #00ff00;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #008000);
+            animation: loading 3s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        .book-item {
+            background: #222;
+            border: 1px solid #00ff00;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .book-title {
+            color: #00ff00;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .book-author {
+            color: #888;
+            font-style: italic;
+        }
+
+        .recommendation-item {
+            background: #1a1a1a;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+        }
+
+        .recommendation-title {
+            color: #00ff00;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .match-score {
+            background: #00ff00;
+            color: #000;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .preferences-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 1px solid #666;
+        }
+
+        .window-header {
+            background: var(--primary-green);
+            color: var(--bg-black);
+            padding: 8px;
+            margin: -20px -20px 20px -20px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .feature-content {
+            color: var(--white);
+            line-height: 1.6;
+        }
+
+        .feature-action {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .feature-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 2px solid var(--primary-green);
+            padding: 10px 20px;
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .feature-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        /* Navigation Section */
+        .navigation-section {
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--bg-dark);
+            margin: 40px 20px;
+            border: 3px solid var(--primary-green);
+        }
+
+        .navigation-header {
+            color: var(--primary-green);
+            font-size: 2rem;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            font-size: 1.3rem;
+            padding: 20px 30px;
+        }
+
+        /* Matrix Rain Effect */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        /* Responsive */
+        /* Modal styles for login/register */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-dark);
+            border: 3px solid var(--primary-green);
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            color: var(--primary-green);
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--primary-green);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--light-gray);
+            color: var(--white);
+            padding: 12px;
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-green);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .form-input::placeholder {
+            color: var(--light-gray);
+        }
+
+        .email-validation-message {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        .email-validation-message.error {
+            color: #ff6b6b;
+            border-left: 2px solid #ff6b6b;
+            padding-left: 8px;
+        }
+
+        .email-validation-message.success {
+            color: var(--primary-green);
+            border-left: 2px solid var(--primary-green);
+            padding-left: 8px;
+        }
+
+        .email-validation-message.checking {
+            color: var(--light-gray);
+            border-left: 2px solid var(--light-gray);
+            padding-left: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+                letter-spacing: 2px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-content {
+                padding: 10px;
+            }
+
+            .navigation-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .terminal-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        /* Language Switcher */
+        .lang-switch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+            z-index: 1000;
+        }
+
+        .lang-switch:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+    </style>
+</head>
+<body>
+    <!-- Terminal Header -->
+    <div class="terminal-header">
+        <div class="terminal-bar">
+            <span class="terminal-title">SHH-ELF.EXE - READING REVOLUTION TERMINAL</span>
+            <div class="terminal-controls">
+                <div class="user-controls" id="userControls">
+                    <div id="loggedOutControls">
+                        <button class="user-btn" onclick="showModal('loginModal')">LOGIN</button>
+                        <button class="user-btn" onclick="showModal('registerModal')">REGISTER</button>
+                    </div>
+                    <div id="loggedInControls" style="display: none;">
+                        <span class="username-display" id="usernameDisplay">USER: LOADING...</span>
+                        <button class="user-btn" onclick="logout()">LOGOUT</button>
+                    </div>
+                </div>
+                <div class="nav-controls">
+                    <a href="index.html" class="nav-btn">HOME</a>
+                    <a href="gallery.html" class="nav-btn">GALLERY</a>
+                    <a href="playground.html" class="nav-btn">PLAYGROUND</a>
+                    <a href="discovery.html" class="nav-btn">DISCOVERY</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matrix Background -->
+    <canvas class="matrix-bg" id="matrix"></canvas>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+        <!-- Command Line Style Intro -->
+        <div class="cmd-line">
+            <span class="cmd-prompt">C:\READING\REVOLUTION></span> INITIALIZING_BOOK_DISCOVERY_PROTOCOL...
+        </div>
+        <div class="cmd-line">
+            <span class="cmd-prompt">C:\READING\REVOLUTION></span> LOADING_CURIOSITY_ENGINE...
+        </div>
+        <div class="cmd-line">
+            <span class="cmd-prompt">C:\READING\REVOLUTION></span> STATUS: READY_FOR_STORY_TRANSMISSION
+        </div>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>SHH-ELF</h1>
+            <div class="tagline">SHH... A STORY'S ABOUT TO BEGIN.</div>
+            <div class="hero-description">
+                TRANSFORM READING INTO A CURIOUS, SOCIAL, AND EMOTIONALLY ENGAGING
+                EXPERIENCE THROUGH BITE-SIZED BOOK TALKS AND PERSONALIZED RECOMMENDATIONS.
+            </div>
+        </section>
+
+        <!-- Terminal Quote -->
+        <div class="terminal-quote">
+            "FINDING BOOKS IS HARD... IT TAKES ME A LONG TIME TO FINISH THE FIRST CHAPTER AND
+            I'M NOT EVEN SURE IF I LIKE IT."<br>
+            <strong>— TEEN INTERVIEWEE</strong>
+        </div>
+
+        <!-- Features Section -->
+        <section class="features-section">
+            <h2 class="section-header">SYSTEM MODULES</h2>
+
+            <div class="features-grid">
+                <a href="gallery.html" class="feature-window">
+                    <div class="window-header">BOOK_TALK_GALLERY.EXE</div>
+                    <div class="feature-content">
+                        Discover classic novels with difficulty levels, sample readings, and expert book talks.
+                        Features <strong>formal models</strong> and <strong>CEFR difficulty ratings</strong>
+                        for English-learning Chinese speakers.
+                    </div>
+                    <div class="feature-action">
+                        <span class="feature-btn">EXPLORE GALLERY</span>
+                    </div>
+                </a>
+
+                <a href="playground.html" class="feature-window">
+                    <div class="window-header">BOOK_TALK_PLAYGROUND.EXE</div>
+                    <div class="feature-content">
+                        Create personalized book recommendations for friends and family.
+                        AI transforms your thoughts into natural, emotional voice memos—perfect for sharing and sparking curiosity.
+                    </div>
+                    <div class="feature-action">
+                        <span class="feature-btn">CREATE RECOMMENDATIONS</span>
+                    </div>
+                </a>
+
+                <a href="discovery.html" class="feature-window">
+                    <div class="window-header">BOOK_DISCOVERY.EXE</div>
+                    <div class="feature-content">
+                        Analyze any book for language learning. Input title and author to get instant analysis:
+                        first paragraph preview, audio narration, difficulty assessment, and formal models.
+                        Perfect for pre-reading preparation.
+                    </div>
+                    <div class="feature-action">
+                        <span class="feature-btn">DISCOVER BOOKS</span>
+                    </div>
+                </a>
+
+                <div class="feature-window" onclick="openShelfAnalysis()">
+                    <div class="window-header">SHELF_ANALYZER.EXE</div>
+                    <div class="feature-content">
+                        📸 Take a photo of your bookshelf and let AI analyze your reading preferences!
+                        Get personalized book recommendations based on your existing collection.
+                        Smart recognition + preference analysis + curated suggestions.
+                    </div>
+                    <div class="feature-action">
+                        <span class="feature-btn">ANALYZE BOOKSHELF</span>
+                    </div>
+                </div>
+
+                <a href="https://v0-graph-adventure-game.vercel.app" target="_blank" class="feature-window">
+                    <div class="window-header">STORY_PLOT.EXE</div>
+                    <div class="feature-content">
+                        📖 Visualize and analyze story structures with AI-powered plot analysis.
+                        Explore narrative arcs, character development, and key story moments.
+                        Perfect for readers and writers alike.
+                    </div>
+                    <div class="feature-action">
+                        <span class="feature-btn">EXPLORE STORY PLOTS</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Navigation Section -->
+        <section class="navigation-section">
+            <h2 class="navigation-header">READY TO START YOUR READING JOURNEY?</h2>
+            <div class="navigation-buttons">
+                <a href="gallery.html" class="pixel-btn nav-button">
+                    EXPLORE BOOK GALLERY
+                </a>
+                <a href="playground.html" class="pixel-btn nav-button">
+                    CREATE RECOMMENDATIONS
+                </a>
+                <a href="discovery.html" class="pixel-btn nav-button">
+                    DISCOVER ANY BOOK
+                </a>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="hideModal('loginModal')">&times;</button>
+            <div class="modal-header">LOGIN</div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="text" id="loginUsername" class="form-input" placeholder="USERNAME" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPassword" class="form-input" placeholder="PASSWORD" required>
+                </div>
+                <button type="submit" class="pixel-btn" style="width: 100%;">LOGIN</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="hideModal('registerModal')">&times;</button>
+            <div class="modal-header">REGISTER</div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="registerUsername" class="form-input" placeholder="USERNAME (3-20 characters)" required minlength="3" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <input type="email" id="registerEmail" class="form-input" placeholder="EMAIL" required>
+                    <div id="emailValidation" class="email-validation-message" style="display: none;"></div>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="registerPassword" class="form-input" placeholder="PASSWORD (min 6 characters)" required minlength="6">
+                </div>
+                <button type="submit" class="pixel-btn" style="width: 100%;">REGISTER</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bookshelf Analysis Modal -->
+    <div id="shelfAnalysisModal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <button class="modal-close" onclick="hideModal('shelfAnalysisModal')">&times;</button>
+            <div class="modal-header">📸 SHELF_ANALYZER.EXE</div>
+
+            <div id="uploadSection" class="upload-section">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <p>Take a photo of your bookshelf or upload an image</p>
+                    <small style="color: #666;">AI will analyze your collection and recommend new books!</small>
+                </div>
+
+                <!-- Camera/Upload Options -->
+                <div class="upload-options">
+                    <button id="cameraBtn" class="pixel-btn" style="margin: 5px;" onclick="startCamera()">
+                        📷 USE CAMERA
+                    </button>
+                    <label for="fileInput" class="pixel-btn" style="margin: 5px; display: inline-block; cursor: pointer;">
+                        📁 UPLOAD IMAGE
+                    </label>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+                </div>
+
+                <!-- Camera Video -->
+                <video id="cameraVideo" style="width: 100%; max-width: 400px; margin: 20px 0; border: 2px solid #00ff00; display: none;" autoplay playsinline></video>
+                <canvas id="photoCanvas" style="display: none;"></canvas>
+
+                <div id="cameraControls" style="text-align: center; display: none; margin: 10px 0;">
+                    <button class="pixel-btn" onclick="takePhoto()">📸 CAPTURE</button>
+                    <button class="pixel-btn" onclick="stopCamera()">❌ CANCEL</button>
+                </div>
+
+                <!-- Preview Section -->
+                <div id="imagePreview" style="text-align: center; margin: 20px 0; display: none;">
+                    <img id="previewImage" style="max-width: 100%; max-height: 300px; border: 2px solid #00ff00;">
+                    <div style="margin: 10px 0;">
+                        <button class="pixel-btn" onclick="analyzeBookshelf()">🤖 ANALYZE BOOKSHELF</button>
+                        <button class="pixel-btn" onclick="resetUpload()">🔄 NEW PHOTO</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Section -->
+            <div id="loadingSection" style="text-align: center; display: none; padding: 40px;">
+                <div style="font-size: 3rem;">🤖</div>
+                <div style="margin: 20px 0;">
+                    <div style="color: #00ff00;">ANALYZING YOUR BOOKSHELF...</div>
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 10px;">
+                        • Identifying books<br>
+                        • Analyzing reading preferences<br>
+                        • Generating recommendations
+                    </div>
+                </div>
+                <div class="loading-bar">
+                    <div class="loading-progress"></div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" style="display: none; max-height: 500px; overflow-y: auto;">
+                <!-- Results will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'https://shh-elf.onrender.com';
+        // Matrix Rain Effect
+        function initMatrix() {
+            const canvas = document.getElementById('matrix');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const chars = '01010101SHHELFBOOK';
+            const charSize = 14;
+            const columns = canvas.width / charSize;
+            const drops = [];
+
+            for (let i = 0; i < columns; i++) {
+                drops[i] = 1;
+            }
+
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = '#003300';
+                ctx.font = charSize + 'px monospace';
+
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * charSize, drops[i] * charSize);
+
+                    if (drops[i] * charSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+
+                    drops[i]++;
+                }
+            }
+
+            setInterval(draw, 50);
+        }
+
+        // Initialize matrix effect
+        initMatrix();
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            initMatrix();
+        });
+
+        // User management
+        let currentUser = null;
+        let authToken = null;
+
+        // Check for saved authentication
+        function checkAuth() {
+            const savedToken = localStorage.getItem('authToken');
+            const savedUser = localStorage.getItem('currentUser');
+
+            if (savedToken && savedUser) {
+                authToken = savedToken;
+                currentUser = JSON.parse(savedUser);
+                updateUserDisplay();
+            }
+        }
+
+        // Update user display
+        function updateUserDisplay() {
+            const loggedOutControls = document.getElementById('loggedOutControls');
+            const loggedInControls = document.getElementById('loggedInControls');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+
+            if (currentUser) {
+                loggedOutControls.style.display = 'none';
+                loggedInControls.style.display = 'flex';
+                usernameDisplay.textContent = `USER: ${currentUser.username.toUpperCase()}`;
+            } else {
+                loggedOutControls.style.display = 'flex';
+                loggedInControls.style.display = 'none';
+            }
+        }
+
+        // Modal management
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // API helper function with timeout and better error handling
+        async function apiRequest(endpoint, options = {}) {
+            const url = `${API_BASE_URL}${endpoint}`;
+
+            // Set timeout for requests (30 seconds for registration, 10 seconds for others)
+            const timeoutMs = endpoint.includes('register') ? 30000 : 10000;
+
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            };
+
+            if (authToken && authToken.trim() !== '') {
+                defaultOptions.headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const finalOptions = { ...defaultOptions, ...options };
+            if (options.headers) {
+                finalOptions.headers = { ...defaultOptions.headers, ...options.headers };
+            }
+
+            console.log('Making API request to:', url);
+            console.log('Request options:', finalOptions);
+            console.log('Timeout set to:', timeoutMs, 'ms');
+
+            // Create timeout controller
+            const controller = new AbortController();
+            finalOptions.signal = controller.signal;
+
+            const timeoutId = setTimeout(() => {
+                console.warn('Request timeout reached, aborting...');
+                controller.abort();
+            }, timeoutMs);
+
+            try {
+                const response = await fetch(url, finalOptions);
+                clearTimeout(timeoutId);
+
+                console.log('Response received!');
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+                if (!response.ok) {
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch (e) {
+                        errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+                    }
+                    console.error('API error response:', errorData);
+                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('API response data:', result);
+                return result;
+
+            } catch (error) {
+                clearTimeout(timeoutId);
+                console.error('API request failed:', error);
+
+                // Handle different types of errors
+                if (error.name === 'AbortError') {
+                    throw new Error(`Request timeout: Server took longer than ${timeoutMs/1000} seconds to respond. This might indicate the operation is still processing.`);
+                } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    throw new Error('Network error: Unable to reach server');
+                } else if (error.message.includes('CORS')) {
+                    throw new Error('CORS error: Cross-origin request blocked');
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        // Login function
+        async function login(username, password) {
+            try {
+                const response = await apiRequest('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+
+                authToken = response.access_token;
+                currentUser = response.user;
+
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                updateUserDisplay();
+                hideModal('loginModal');
+                showSuccess('Login successful!');
+
+                return true;
+            } catch (error) {
+                showError(`Login failed: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Register function
+        async function checkEmailAvailability(email) {
+            try {
+                const response = await apiRequest(`/api/check-email?email=${encodeURIComponent(email)}`);
+                return response;
+            } catch (error) {
+                console.error('Error checking email:', error);
+                return null;
+            }
+        }
+
+        async function register(username, email, password) {
+            // Validate username first
+            if (username.length < 3 || username.length > 20) {
+                showError('Username must be between 3-20 characters');
+                return false;
+            }
+
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters');
+                return false;
+            }
+
+            // Check email availability
+            const emailCheck = await checkEmailAvailability(email);
+            if (emailCheck && !emailCheck.available) {
+                showError(emailCheck.message);
+                return false;
+            }
+
+            try {
+                console.log('Attempting registration for:', username, email);
+
+                const response = await apiRequest('/api/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                console.log('Registration response:', response);
+
+                // Check if the response indicates email verification is needed
+                if (response.success && response.email_sent) {
+                    // Email verification flow
+                    hideModal('registerModal');
+                    showEmailVerificationMessage(response.message || 'Registration successful! Please check your email for verification.');
+                    return true;
+                }
+
+                // Also check for any response with email_sent flag
+                if (response.email_sent) {
+                    hideModal('registerModal');
+                    showEmailVerificationMessage(response.message || 'Registration successful! Please check your email for verification.');
+                    return true;
+                }
+
+                // Check for access token (direct registration success)
+                if (response.access_token) {
+                    authToken = response.access_token;
+                    currentUser = response.user;
+
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                    updateUserDisplay();
+                    hideModal('registerModal');
+                    showSuccess('Registration successful!');
+                    return true;
+                }
+
+                // If we get here, something unexpected happened
+                console.warn('Unexpected registration response:', response);
+                showSuccess('Registration may have succeeded. Please check your email.');
+                hideModal('registerModal');
+                return true;
+
+            } catch (error) {
+                console.error('Registration error details:', error);
+
+                // Special handling for timeout during registration
+                if (error.message.includes('timeout')) {
+                    // The request timed out, but the registration might have succeeded
+                    hideModal('registerModal');
+                    showEmailVerificationMessage('Registration might have succeeded! If you receive a verification email, please click the link to complete registration. If not, try registering again in a few minutes.');
+                    return true; // Don't show error, assume success
+                } else if (error.message.includes('fetch')) {
+                    // Network error - could be timeout or connection issue
+                    hideModal('registerModal');
+                    showEmailVerificationMessage('Registration request sent! If you receive a verification email, please click the link to complete registration. If not received within 5 minutes, try registering again.');
+                    return true; // Don't show error for registration, assume it might have worked
+                } else if (error.message.includes('CORS')) {
+                    showError('Connection error: Please refresh the page and try again.');
+                    return false;
+                } else {
+                    showError(`Registration failed: ${error.message}`);
+                    return false;
+                }
+            }
+        }
+
+        // Show email verification message
+        function showEmailVerificationMessage(message) {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.style.display = 'block';
+            overlay.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">EMAIL VERIFICATION</div>
+                    <div style="margin-bottom: 20px; color: var(--white); line-height: 1.6;">
+                        <p>${message}</p>
+                        <p style="margin-top: 15px; color: var(--light-gray); font-size: 0.9rem;">
+                            Didn't receive the email? Please check your spam folder
+                        </p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="pixel-btn" style="width: 100%;">
+                        OK
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // Auto-close after 8 seconds
+            setTimeout(() => {
+                if (overlay.parentElement) {
+                    overlay.remove();
+                }
+            }, 8000);
+        }
+
+        // Logout function
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            updateUserDisplay();
+            showSuccess('Logged out successfully!');
+        }
+
+        // Success and Error message functions
+        function showSuccess(message) {
+            console.log('Success:', message);
+            // You could add a success notification here
+        }
+
+        function showError(message) {
+            alert(`ERROR: ${message}`);
+        }
+
+        // Form event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+                await login(username, password);
+            });
+
+            document.getElementById('registerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const username = document.getElementById('registerUsername').value;
+                const email = document.getElementById('registerEmail').value;
+                const password = document.getElementById('registerPassword').value;
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+
+                // Client-side validation
+                if (username.length < 3 || username.length > 20) {
+                    showError('Username must be between 3-20 characters');
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showError('Password must be at least 6 characters');
+                    return;
+                }
+
+                // Email format validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showError('Please enter a valid email address');
+                    return;
+                }
+
+                // Disable button and show loading state
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'REGISTERING...';
+                submitBtn.style.opacity = '0.6';
+
+                try {
+                    await register(username, email, password);
+                } finally {
+                    // Re-enable button
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    submitBtn.style.opacity = '1';
+                }
+            });
+
+            // Real-time email validation
+            let emailValidationTimeout;
+            document.getElementById('registerEmail').addEventListener('input', function(e) {
+                const email = e.target.value;
+                const validationDiv = document.getElementById('emailValidation');
+
+                // Clear previous timeout
+                if (emailValidationTimeout) {
+                    clearTimeout(emailValidationTimeout);
+                }
+
+                // Hide validation if email is empty
+                if (!email.trim()) {
+                    validationDiv.style.display = 'none';
+                    return;
+                }
+
+                // Basic email format validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    validationDiv.style.display = 'block';
+                    validationDiv.className = 'email-validation-message error';
+                    validationDiv.textContent = 'Invalid email format';
+                    return;
+                }
+
+                // Show checking message
+                validationDiv.style.display = 'block';
+                validationDiv.className = 'email-validation-message checking';
+                validationDiv.textContent = 'Checking availability...';
+
+                // Debounced API call
+                emailValidationTimeout = setTimeout(async () => {
+                    const result = await checkEmailAvailability(email);
+                    if (result) {
+                        if (result.available) {
+                            validationDiv.className = 'email-validation-message success';
+                            validationDiv.textContent = '✓ Email available';
+                        } else {
+                            validationDiv.className = 'email-validation-message error';
+                            validationDiv.textContent = '✗ ' + result.message;
+                        }
+                    } else {
+                        validationDiv.style.display = 'none';
+                    }
+                }, 500);
+            });
+        });
+
+        // Modal click outside to close
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.style.display = 'none';
+            }
+        });
+
+        // Check URL hash for modal redirect
+        function checkUrlHash() {
+            const hash = window.location.hash.substring(1); // Remove #
+            if (hash === 'loginModal' || hash === 'registerModal') {
+                showModal(hash);
+                // Clear the hash to avoid issues
+                window.history.replaceState(null, null, window.location.pathname);
+            }
+        }
+
+        // Check URL parameters for auto-login from email verification
+        function checkAutoLogin() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const userData = urlParams.get('user');
+
+            if (token && userData) {
+                try {
+                    const user = JSON.parse(decodeURIComponent(userData));
+                    authToken = token;
+                    currentUser = user;
+
+                    localStorage.setItem('authToken', token);
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+
+                    updateUserDisplay();
+                    console.log('Auto-login successful from email verification:', user.username);
+
+                    // Show success message
+                    showEmailVerificationMessage(`Welcome back, ${user.username}! Your email has been verified and you are now logged in.`);
+
+                    // Clean URL without refreshing page
+                    window.history.replaceState(null, null, window.location.pathname);
+
+                    return true;
+                } catch (e) {
+                    console.error('Auto-login failed:', e);
+                }
+            }
+            return false;
+        }
+
+        // Language switching functionality
+        // Bookshelf Analysis Functions
+        let currentImageFile = null;
+        let cameraStream = null;
+
+        function openShelfAnalysis() {
+            showModal('shelfAnalysisModal');
+            resetUpload();
+        }
+
+        function resetUpload() {
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('cameraVideo').style.display = 'none';
+            document.getElementById('cameraControls').style.display = 'none';
+
+            currentImageFile = null;
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: { ideal: 'environment' } // Back camera preferred
+                    }
+                };
+
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const video = document.getElementById('cameraVideo');
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+                document.getElementById('cameraControls').style.display = 'block';
+            } catch (error) {
+                console.error('Camera access error:', error);
+                alert('Unable to access camera. Please use the upload option instead.');
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            document.getElementById('cameraVideo').style.display = 'none';
+            document.getElementById('cameraControls').style.display = 'none';
+        }
+
+        function takePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('photoCanvas');
+            const context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+
+            canvas.toBlob(function(blob) {
+                currentImageFile = new File([blob], 'bookshelf.jpg', { type: 'image/jpeg' });
+                showImagePreview(URL.createObjectURL(blob));
+            }, 'image/jpeg', 0.8);
+
+            stopCamera();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                currentImageFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showImagePreview(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert('Please select a valid image file.');
+            }
+        }
+
+        function showImagePreview(imageSrc) {
+            const previewImg = document.getElementById('previewImage');
+            previewImg.src = imageSrc;
+            document.getElementById('imagePreview').style.display = 'block';
+        }
+
+        async function analyzeBookshelf() {
+            if (!currentImageFile) {
+                alert('Please select or capture an image first.');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('loadingSection').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', currentImageFile);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/analyze-bookshelf`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Analysis failed: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                displayAnalysisResults(result);
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('Analysis failed. Please try again with a clearer image.');
+                resetUpload();
+            }
+        }
+
+        function displayAnalysisResults(result) {
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+
+            const resultsHtml = `
+                <div class="analysis-results">
+                    <h3 style="color: #00ff00; text-align: center; margin-bottom: 20px;">
+                        📚 BOOKSHELF ANALYSIS COMPLETE
+                    </h3>
+
+                    <div class="preferences-section">
+                        <h4 style="color: #00ff00; margin-bottom: 15px;">📊 Your Reading Preferences</h4>
+                        <p><strong>Favorite Genres:</strong> ${result.reading_preferences.favorite_genres?.join(', ') || 'Not detected'}</p>
+                        <p><strong>Reading Level:</strong> ${result.reading_preferences.reading_level || 'Not detected'}</p>
+                        <p><strong>Interests:</strong> ${result.reading_preferences.interests?.join(', ') || 'Not detected'}</p>
+                        <p><strong>Author Preferences:</strong> ${result.reading_preferences.author_preferences || 'Not detected'}</p>
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #00ff00; margin-bottom: 15px;">📖 Detected Books (${result.detected_books.length})</h4>
+                        ${result.detected_books.map(book => `
+                            <div class="book-item">
+                                <div class="book-title">${book.title}</div>
+                                <div class="book-author">by ${book.author}</div>
+                                <div style="margin-top: 5px;">
+                                    <span style="color: #666;">Genre: ${book.genre}</span>
+                                    <span class="match-score" style="margin-left: 10px;">${Math.round(book.confidence * 100)}% confidence</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                        <h4 style="color: #00ff00; margin-bottom: 15px;">🎯 Recommended Books</h4>
+                        ${result.recommended_books.map(rec => `
+                            <div class="recommendation-item">
+                                <div class="recommendation-title">${rec.title}</div>
+                                <div class="book-author">by ${rec.author}</div>
+                                <div style="margin: 10px 0; color: #ccc;">
+                                    ${rec.reason}
+                                </div>
+                                <div>
+                                    <span class="match-score">${Math.round(rec.match_score * 100)}% match</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="preferences-section">
+                        <h4 style="color: #00ff00; margin-bottom: 10px;">💡 Analysis Summary</h4>
+                        <p style="line-height: 1.6;">${result.analysis_summary}</p>
+                        <p style="margin-top: 10px; color: #888; font-size: 0.9rem;">
+                            Analysis confidence: ${Math.round(result.confidence_score * 100)}%
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="pixel-btn" onclick="resetUpload()">📸 ANALYZE ANOTHER SHELF</button>
+                        <button class="pixel-btn" onclick="hideModal('shelfAnalysisModal')" style="margin-left: 10px;">✓ DONE</button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('resultsSection').innerHTML = resultsHtml;
+        }
+
+        const translations = {
+            en: {
+                'terminal-title': 'SHH-ELF.EXE - READING REVOLUTION TERMINAL',
+                'login-btn': 'LOGIN',
+                'register-btn': 'REGISTER',
+                'logout-btn': 'LOGOUT',
+                'nav-home': 'HOME',
+                'nav-gallery': 'GALLERY',
+                'nav-playground': 'PLAYGROUND',
+                'nav-discovery': 'DISCOVERY',
+                'cmd-init': 'INITIALIZING_BOOK_DISCOVERY_PROTOCOL...',
+                'cmd-loading': 'LOADING_CURIOSITY_ENGINE...',
+                'cmd-ready': 'STATUS: READY_FOR_STORY_TRANSMISSION',
+                'tagline': 'SHH... A STORY\'S ABOUT TO BEGIN.',
+                'hero-desc': 'A Book Talk Tool to Spark Reading Through Curiosity and Connection',
+                'terminal-quote': 'Words create worlds. Let\'s explore them together.',
+                'system-modules': 'SYSTEM MODULES',
+                'gallery-header': 'BOOK_TALK_GALLERY.EXE',
+                'gallery-desc': 'Classic novels with difficulty ratings, sample readings, and expert analysis.',
+                'gallery-btn': 'EXPLORE GALLERY',
+                'playground-header': 'BOOK_TALK_PLAYGROUND.EXE',
+                'playground-desc': 'Generate personalized book recommendations and audio book talks.',
+                'playground-btn': 'CREATE RECOMMENDATIONS',
+                'discovery-header': 'BOOK_DISCOVERY.EXE',
+                'discovery-desc': 'Analyze any book for language learning with AI-powered insights.',
+                'discovery-btn': 'DISCOVER BOOKS',
+                'ready-header': 'READY TO START YOUR READING JOURNEY?',
+                'nav-btn-gallery': 'EXPLORE BOOK GALLERY',
+                'nav-btn-playground': 'CREATE BOOK TALKS',
+                'nav-btn-discovery': 'DISCOVER ANY BOOK',
+                'login-modal': 'LOGIN',
+                'register-modal': 'REGISTER',
+                'username-placeholder': 'USERNAME',
+                'password-placeholder': 'PASSWORD',
+                'email-placeholder': 'EMAIL',
+                'username-placeholder-reg': 'USERNAME (3-20 characters)',
+                'password-placeholder-reg': 'PASSWORD (min 6 characters)',
+                'email-verification': 'EMAIL VERIFICATION',
+                'user-loading': 'USER: LOADING...',
+                'registering': 'REGISTERING...',
+                'lang-btn': '中文'
+            },
+            zh: {
+                'terminal-title': 'SHH-ELF.EXE - 阅读革命终端',
+                'login-btn': '登录',
+                'register-btn': '注册',
+                'logout-btn': '登出',
+                'nav-home': '首页',
+                'nav-gallery': '画廊',
+                'nav-playground': '操场',
+                'nav-discovery': '发现',
+                'cmd-init': '正在初始化书籍发现协议...',
+                'cmd-loading': '正在加载好奇心引擎...',
+                'cmd-ready': '状态：准备好进行故事传输',
+                'tagline': 'SHH... 故事即将开始。',
+                'hero-desc': '通过好奇心和连接激发阅读的书籍对话工具',
+                'terminal-quote': '文字创造世界。让我们一起探索它们。',
+                'system-modules': '系统模块',
+                'gallery-header': '书籍对话画廊.EXE',
+                'gallery-desc': '经典小说配有难度评级、示例阅读和专家分析。',
+                'gallery-btn': '探索画廊',
+                'playground-header': '书籍对话操场.EXE',
+                'playground-desc': '生成个性化图书推荐和音频书籍对话。',
+                'playground-btn': '创建推荐',
+                'discovery-header': '书籍发现.EXE',
+                'discovery-desc': '使用AI驱动的洞察分析任何书籍以进行语言学习。',
+                'discovery-btn': '发现书籍',
+                'ready-header': '准备开始您的阅读之旅了吗？',
+                'nav-btn-gallery': '探索书籍画廊',
+                'nav-btn-playground': '创建书籍对话',
+                'nav-btn-discovery': '发现任何书籍',
+                'login-modal': '登录',
+                'register-modal': '注册',
+                'username-placeholder': '用户名',
+                'password-placeholder': '密码',
+                'email-placeholder': '邮箱',
+                'username-placeholder-reg': '用户名（3-20个字符）',
+                'password-placeholder-reg': '密码（至少6个字符）',
+                'email-verification': '邮箱验证',
+                'user-loading': '用户：加载中...',
+                'registering': '注册中...',
+                'lang-btn': 'EN'
+            }
+        };
+
+        let currentLanguage = localStorage.getItem('language') || 'en';
+
+        function updateLanguage() {
+            const lang = translations[currentLanguage];
+
+            // Update terminal title
+            document.querySelector('.terminal-title').textContent = lang['terminal-title'];
+
+            // Update navigation buttons
+            document.querySelector('.nav-btn[href="index.html"]').textContent = lang['nav-home'];
+            document.querySelector('.nav-btn[href="gallery.html"]').textContent = lang['nav-gallery'];
+            document.querySelector('.nav-btn[href="playground.html"]').textContent = lang['nav-playground'];
+            document.querySelector('.nav-btn[href="discovery.html"]').textContent = lang['nav-discovery'];
+
+            // Update user controls
+            const loginBtn = document.querySelector('button[onclick*="loginModal"]');
+            if (loginBtn) loginBtn.textContent = lang['login-btn'];
+
+            const registerBtn = document.querySelector('button[onclick*="registerModal"]');
+            if (registerBtn) registerBtn.textContent = lang['register-btn'];
+
+            const logoutBtn = document.querySelector('button[onclick="logout()"]');
+            if (logoutBtn) logoutBtn.textContent = lang['logout-btn'];
+
+            // Update command lines
+            const cmdLines = document.querySelectorAll('.cmd-line span:not(.cmd-prompt)');
+            if (cmdLines.length >= 3) {
+                cmdLines[0].textContent = ' ' + lang['cmd-init'];
+                cmdLines[1].textContent = ' ' + lang['cmd-loading'];
+                cmdLines[2].textContent = ' ' + lang['cmd-ready'];
+            }
+
+            // Update hero section
+            const tagline = document.querySelector('.tagline');
+            if (tagline) tagline.textContent = lang['tagline'];
+
+            const heroDesc = document.querySelector('.hero-description');
+            if (heroDesc) heroDesc.textContent = lang['hero-desc'];
+
+            // Update terminal quote
+            const terminalQuote = document.querySelector('.quote-text');
+            if (terminalQuote) terminalQuote.textContent = lang['terminal-quote'];
+
+            // Update section headers
+            const systemModules = document.querySelector('.section-header');
+            if (systemModules) systemModules.textContent = lang['system-modules'];
+
+            // Update feature windows
+            const windowHeaders = document.querySelectorAll('.window-header');
+            if (windowHeaders.length >= 3) {
+                windowHeaders[0].textContent = lang['gallery-header'];
+                windowHeaders[1].textContent = lang['playground-header'];
+                windowHeaders[2].textContent = lang['discovery-header'];
+            }
+
+            const featureContents = document.querySelectorAll('.feature-content');
+            if (featureContents.length >= 3) {
+                featureContents[0].textContent = lang['gallery-desc'];
+                featureContents[1].textContent = lang['playground-desc'];
+                featureContents[2].textContent = lang['discovery-desc'];
+            }
+
+            const featureBtns = document.querySelectorAll('.feature-btn');
+            if (featureBtns.length >= 3) {
+                featureBtns[0].textContent = lang['gallery-btn'];
+                featureBtns[1].textContent = lang['playground-btn'];
+                featureBtns[2].textContent = lang['discovery-btn'];
+            }
+
+            // Update navigation section
+            const navHeader = document.querySelector('.navigation-header');
+            if (navHeader) navHeader.textContent = lang['ready-header'];
+
+            const navButtons = document.querySelectorAll('.nav-button');
+            if (navButtons.length >= 3) {
+                navButtons[0].textContent = lang['nav-btn-gallery'];
+                navButtons[1].textContent = lang['nav-btn-playground'];
+                navButtons[2].textContent = lang['nav-btn-discovery'];
+            }
+
+            // Update modal headers
+            const loginModal = document.querySelector('#loginModal .modal-header');
+            if (loginModal) loginModal.textContent = lang['login-modal'];
+
+            const registerModal = document.querySelector('#registerModal .modal-header');
+            if (registerModal) registerModal.textContent = lang['register-modal'];
+
+            // Update form placeholders
+            const loginUsername = document.getElementById('loginUsername');
+            if (loginUsername) loginUsername.placeholder = lang['username-placeholder'];
+
+            const loginPassword = document.getElementById('loginPassword');
+            if (loginPassword) loginPassword.placeholder = lang['password-placeholder'];
+
+            const registerUsername = document.getElementById('registerUsername');
+            if (registerUsername) registerUsername.placeholder = lang['username-placeholder-reg'];
+
+            const registerEmail = document.getElementById('registerEmail');
+            if (registerEmail) registerEmail.placeholder = lang['email-placeholder'];
+
+            const registerPassword = document.getElementById('registerPassword');
+            if (registerPassword) registerPassword.placeholder = lang['password-placeholder-reg'];
+
+            // Update form buttons
+            const loginFormBtn = document.querySelector('#loginForm button[type="submit"]');
+            if (loginFormBtn) loginFormBtn.textContent = lang['login-btn'];
+
+            const registerFormBtn = document.querySelector('#registerForm button[type="submit"]');
+            if (registerFormBtn) registerFormBtn.textContent = lang['register-btn'];
+
+            // Update language switcher button
+            const langBtn = document.querySelector('.lang-switch');
+            if (langBtn) langBtn.textContent = lang['lang-btn'];
+        }
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'zh' : 'en';
+            localStorage.setItem('language', currentLanguage);
+            updateLanguage();
+        }
+
+        // Initialize
+        window.onload = function() {
+            checkAuth(); // Check for saved authentication
+
+            // Check for auto-login from email verification (higher priority)
+            if (!checkAutoLogin()) {
+                checkUrlHash(); // Check if redirected for login/register only if no auto-login
+            }
+
+            updateLanguage(); // Set initial language
+
+            console.log('SHH-ELF.EXE MAIN TERMINAL LOADED');
+            console.log('SYSTEM MODULES: READY');
+        };
+    </script>
+
+    <!-- Language Switcher -->
+    <button class="lang-switch" onclick="toggleLanguage()">中文</button>
+</body>
+</html>
