@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHH-ELF :: Book Talk Playground</title>
+    <meta name="description" content="Create personalized book recommendations with AI-powered voice memos">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-green: #00ff00;
+            --dark-green: #008000;
+            --bg-black: #000000;
+            --bg-dark: #111111;
+            --white: #ffffff;
+            --gray: #333333;
+            --light-gray: #666666;
+            --pixel-size: 2px;
+        }
+
+        body {
+            font-family: 'VT323', 'Courier New', monospace;
+            background: var(--bg-black);
+            color: var(--primary-green);
+            line-height: 1.4;
+            font-size: 18px;
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
+
+        /* Scanlines Effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                transparent 50%,
+                rgba(0, 255, 0, 0.03) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* CRT Flicker */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            98% { opacity: 0.98; }
+            99% { opacity: 1; }
+        }
+
+        body {
+            animation: flicker 3s infinite;
+        }
+
+        /* Header Terminal */
+        /* Header Terminal */
+        .terminal-header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--bg-black);
+            border-bottom: 2px solid var(--primary-green);
+            padding: 8px 16px;
+            z-index: 100;
+            font-size: 14px;
+        }
+
+        .terminal-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            color: var(--primary-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 12px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .terminal-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            color: var(--primary-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 12px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .user-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-right: 20px;
+        }
+
+        .user-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 8px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .username-display {
+            color: var(--primary-green);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .control-btn {
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--primary-green);
+            background: transparent;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .control-btn:hover {
+            background: var(--primary-green);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 40px;
+            padding: 20px;
+        }
+
+        /* Command Prompt Style */
+        .cmd-line {
+            color: var(--primary-green);
+            margin: 10px 0;
+            font-family: 'VT323', monospace;
+        }
+
+        .cmd-prompt {
+            color: var(--dark-green);
+        }
+
+        /* Pixel Button */
+        .pixel-btn {
+            background: var(--bg-black);
+            color: var(--primary-green);
+            border: 3px solid var(--primary-green);
+            padding: 12px 24px;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            box-shadow: 4px 4px 0px var(--dark-green);
+        }
+
+        .pixel-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--dark-green);
+        }
+
+        .pixel-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
+        }
+
+        /* Playground Section */
+        .playground {
+            margin: 40px 20px;
+            border: 3px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 30px;
+        }
+
+        .playground-header {
+            text-align: center;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: var(--primary-green);
+        }
+
+        .playground-desc {
+            text-align: center;
+            color: var(--white);
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        /* Form Styling */
+        .terminal-form {
+            max-width: 600px;
+            margin: 20px auto;
+            background: var(--bg-black);
+            border: 3px solid var(--primary-green);
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--primary-green);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--light-gray);
+            color: var(--white);
+            padding: 12px;
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-green);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+            color: var(--light-gray);
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            border: 2px solid var(--primary-green);
+            background: var(--bg-dark);
+            margin: 20px 0;
+        }
+
+        .loading-text {
+            color: var(--primary-green);
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        /* Email validation message */
+        .email-validation-message {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .email-validation-message.error {
+            color: #ff6b6b;
+            border-left: 2px solid #ff6b6b;
+            padding-left: 8px;
+        }
+
+        .email-validation-message.success {
+            color: var(--primary-green);
+            border-left: 2px solid var(--primary-green);
+            padding-left: 8px;
+        }
+
+        .email-validation-message.checking {
+            color: var(--light-gray);
+            border-left: 2px solid var(--light-gray);
+            padding-left: 8px;
+        }
+
+        .loading-bar {
+            width: 100%;
+            height: 20px;
+            border: 2px solid var(--primary-green);
+            background: var(--bg-black);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-fill {
+            height: 100%;
+            background: var(--primary-green);
+            width: 0%;
+            animation: loading-progress 3s ease-in-out infinite;
+        }
+
+        @keyframes loading-progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        /* Result Section */
+        .result {
+            display: none;
+            margin-top: 30px;
+            border: 2px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 20px;
+        }
+
+        .result-header {
+            color: var(--primary-green);
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .audio-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .audio-player {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+        }
+
+        .share-container {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid var(--light-gray);
+            background: var(--bg-black);
+        }
+
+        .share-url {
+            width: 100%;
+            background: var(--bg-dark);
+            color: var(--white);
+            border: 1px solid var(--light-gray);
+            padding: 10px;
+            font-family: 'VT323', monospace;
+            margin-bottom: 10px;
+        }
+
+        /* Language Switcher */
+        .lang-switch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .lang-switch:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        /* Error Message */
+        .error-msg {
+            display: none;
+            background: var(--bg-black);
+            border: 2px solid #ff0000;
+            color: #ff0000;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 10px;
+            }
+        }
+
+        /* Matrix Rain Effect (Optional) */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        /* Modal styles for login/register */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-dark);
+            border: 3px solid var(--primary-green);
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            color: var(--primary-green);
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--primary-green);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .history-container {
+            display: none;
+            margin: 40px 20px;
+            border: 3px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 30px;
+        }
+
+        .history-header {
+            text-align: center;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: var(--primary-green);
+        }
+
+        .history-item {
+            border: 2px solid var(--light-gray);
+            background: var(--bg-black);
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .history-book-title {
+            color: var(--primary-green);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        .history-date {
+            color: var(--light-gray);
+            font-size: 0.9rem;
+        }
+
+        .history-details {
+            color: var(--white);
+            margin-bottom: 10px;
+        }
+
+        .history-audio {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-header">
+        <div class="terminal-bar">
+            <span class="terminal-title">SHH-ELF.EXE - BOOK RECOMMENDATION PLAYGROUND</span>
+            <div class="terminal-controls">
+                <div class="nav-controls">
+                    <a href="index.html" class="nav-btn">HOME</a>
+                    <a href="gallery.html" class="nav-btn">GALLERY</a>
+                    <a href="playground.html" class="nav-btn">PLAYGROUND</a>
+                    <a href="discovery.html" class="nav-btn">DISCOVERY</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matrix Background -->
+    <canvas class="matrix-bg" id="matrix"></canvas>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+
+        <!-- Book Talk Playground -->
+        <section id="playground" class="playground">
+            <div class="playground-header">BOOK TALK PLAYGROUND</div>
+            <div class="playground-desc">
+                CREATE A PERSONALIZED BOOK RECOMMENDATION FOR SOMEONE SPECIAL.
+                OUR AI WILL TURN YOUR THOUGHTS INTO A NATURAL, EMOTIONAL VOICE MEMO.
+            </div>
+
+            <div class="terminal-form">
+                <!-- Error Message -->
+                <div class="error-msg" id="errorMessage">
+                    <span id="errorText">SYSTEM ERROR: PLEASE TRY AGAIN</span>
+                </div>
+
+                <form id="recommendationForm">
+                    <div class="form-group">
+                        <label for="book_title" class="form-label" id="label-book">BOOK TITLE</label>
+                        <input type="text" id="book_title" name="book_title" class="form-input" required
+                               placeholder="e.g., The Seven Husbands of Evelyn Hugo">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipient_name" class="form-label" id="label-recipient">RECOMMEND TO</label>
+                        <input type="text" id="recipient_name" name="recipient_name" class="form-input" required
+                               placeholder="e.g., Sarah, my book-loving friend">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="relationship" class="form-label" id="label-relationship">RELATIONSHIP</label>
+                        <select id="relationship" name="relationship" class="form-select">
+                            <option value="friend">FRIEND</option>
+                            <option value="classmate">CLASSMATE</option>
+                            <option value="colleague">COLLEAGUE</option>
+                            <option value="family">FAMILY</option>
+                            <option value="student">STUDENT</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipient_interests" class="form-label" id="label-interests">THEIR INTERESTS (OPTIONAL)</label>
+                        <textarea id="recipient_interests" name="recipient_interests" class="form-textarea" rows="3"
+                                  placeholder="e.g., loves romance novels, enjoys character-driven stories..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="language" class="form-label" id="label-language">LANGUAGE</label>
+                        <select id="language" name="language" class="form-select">
+                            <option value="English">ENGLISH</option>
+                            <option value="中文">中文</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tone" class="form-label" id="label-tone">RECOMMENDATION TONE</label>
+                        <select id="tone" name="tone" class="form-select">
+                            <option value="friendly and enthusiastic">FRIENDLY & ENTHUSIASTIC</option>
+                            <option value="professional and objective">PROFESSIONAL & OBJECTIVE</option>
+                            <option value="casual and humorous">CASUAL & HUMOROUS</option>
+                            <option value="warm and caring">WARM & CARING</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="dialect-group" style="display: none;">
+                        <label for="dialect" class="form-label" id="label-dialect">语音方言</label>
+                        <select id="dialect" name="dialect" class="form-select">
+                            <option value="zh-CN-XiaoxiaoNeural" selected>普通话 (女声)</option>
+                            <option value="zh-CN-liaoning-XiaobeiNeural">东北话 (女声)</option>
+                            <option value="zh-CN-liaoning-YunbiaoNeural">东北话 (男声)</option>
+                            <option value="wuu-CN-XiaotongNeural">上海话 (女声)</option>
+                            <option value="wuu-CN-YunzheNeural">上海话 (男声)</option>
+                            <option value="zh-CN-sichuan-YunxiNeural">四川话 (男声)</option>
+                            <option value="zh-CN-shandong-YunxiangNeural">山东话 (男声)</option>
+                            <option value="zh-CN-shaanxi-XiaoniNeural">陕西话 (女声)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="pixel-btn" id="submit-btn" style="width: 100%; margin-top: 20px;">
+                        GENERATE AUDIO RECOMMENDATION
+                    </button>
+                </form>
+
+                <div class="loading" id="loading">
+                    <div class="loading-text" id="loading-text1">GENERATING PERSONALIZED BOOK TALK...</div>
+                    <div class="loading-bar">
+                        <div class="loading-fill"></div>
+                    </div>
+                    <div class="loading-text" id="loading-text2">PROCESSING NEURAL NETWORKS... 10-15 SECONDS</div>
+                </div>
+
+                <div class="result" id="result">
+                    <div class="result-header" id="success-title">BOOK TALK GENERATED SUCCESSFULLY!</div>
+                    <div class="audio-container">
+                        <audio controls class="audio-player" id="audioPlayer">
+                            Your browser does not support audio playback.
+                        </audio>
+                    </div>
+                    <div class="share-container">
+                        <label class="form-label" id="share-title">SHARE YOUR RECOMMENDATION</label>
+                        <input type="text" id="shareUrl" class="share-url" readonly placeholder="Share link will appear here">
+                        <button onclick="copyToClipboard()" class="pixel-btn" id="copy-btn" style="width: 100%; margin-top: 10px;">COPY LINK</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- User History Section -->
+        <section id="history" class="history-container">
+            <div class="history-header">MY RECOMMENDATION HISTORY</div>
+            <div id="historyContent">
+                <div class="loading-text">Loading your recommendations...</div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="hideModal('loginModal')">&times;</button>
+            <div class="modal-header">LOGIN</div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="text" id="loginUsername" class="form-input" placeholder="USERNAME" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPassword" class="form-input" placeholder="PASSWORD" required>
+                </div>
+                <button type="submit" class="pixel-btn" style="width: 100%;">LOGIN</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="hideModal('registerModal')">&times;</button>
+            <div class="modal-header">REGISTER</div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="registerUsername" class="form-input" placeholder="USERNAME (3-20 characters)" required minlength="3" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <input type="email" id="registerEmail" class="form-input" placeholder="EMAIL" required>
+                    <div id="emailValidation" class="email-validation-message" style="display: none; margin-top: 5px; font-size: 12px;"></div>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="registerPassword" class="form-input" placeholder="PASSWORD (min 6 characters)" required minlength="6">
+                </div>
+                <button type="submit" class="pixel-btn" style="width: 100%;">REGISTER</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Language Switcher -->
+    <div class="lang-switch" onclick="toggleLanguage()">
+        <span id="lang-switch">中文</span>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'https://shh-elf.onrender.com';  // Production URL
+
+        console.log('API Base URL:', API_BASE_URL);
+        console.log('Book Talk Playground loaded - Y2K PIXEL MODE ACTIVATED');
+
+        // User management
+        let currentUser = null;
+        let authToken = null;
+
+        // Check for saved authentication
+        function checkAuth() {
+            const savedToken = localStorage.getItem('authToken');
+            const savedUser = localStorage.getItem('currentUser');
+
+            if (savedToken && savedUser) {
+                authToken = savedToken;
+                currentUser = JSON.parse(savedUser);
+                updateUserDisplay();
+            }
+        }
+
+        // Update user display
+        function updateUserDisplay() {
+            const loggedOutControls = document.getElementById('loggedOutControls');
+            const loggedInControls = document.getElementById('loggedInControls');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+
+            if (currentUser) {
+                loggedOutControls.style.display = 'none';
+                loggedInControls.style.display = 'flex';
+                usernameDisplay.textContent = `USER: ${currentUser.username.toUpperCase()}`;
+            } else {
+                loggedOutControls.style.display = 'flex';
+                loggedInControls.style.display = 'none';
+            }
+        }
+
+        // Modal management
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // API helper function
+        async function apiRequest(endpoint, options = {}) {
+            const url = `${API_BASE_URL}${endpoint}`;
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            };
+
+            if (authToken && authToken.trim() !== '') {
+                defaultOptions.headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const finalOptions = { ...defaultOptions, ...options };
+            if (options.headers) {
+                finalOptions.headers = { ...defaultOptions.headers, ...options.headers };
+            }
+
+            const response = await fetch(url, finalOptions);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return response.json();
+        }
+
+        // Login function
+        async function login(username, password) {
+            try {
+                const response = await apiRequest('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+
+                authToken = response.access_token;
+                currentUser = response.user;
+
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                updateUserDisplay();
+                hideModal('loginModal');
+                showSuccess('Login successful!');
+
+                return true;
+            } catch (error) {
+                showError(`Login failed: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Register function
+        async function checkEmailAvailability(email) {
+            try {
+                const response = await apiRequest(`/api/check-email?email=${encodeURIComponent(email)}`);
+                return response;
+            } catch (error) {
+                console.error('Error checking email:', error);
+                return null;
+            }
+        }
+
+        async function register(username, email, password) {
+            // Validate username first
+            if (username.length < 3 || username.length > 20) {
+                showError('用户名长度必须在3-20个字符之间');
+                return false;
+            }
+
+            if (password.length < 6) {
+                showError('密码长度至少为6个字符');
+                return false;
+            }
+
+            // Check email availability
+            const emailCheck = await checkEmailAvailability(email);
+            if (emailCheck && !emailCheck.available) {
+                showError(emailCheck.message);
+                return false;
+            }
+
+            try {
+                const response = await apiRequest('/api/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                if (response.email_sent) {
+                    // 邮件验证流程
+                    hideModal('registerModal');
+                    showEmailVerificationMessage(response.message);
+                } else {
+                    // 直接注册成功（邮件服务未配置）
+                    authToken = response.access_token;
+                    currentUser = response.user;
+
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                    updateUserDisplay();
+                    hideModal('registerModal');
+                    showSuccess(response.message || 'Registration successful!');
+                }
+
+                return true;
+            } catch (error) {
+                showError(`Registration failed: ${error.message}`);
+                return false;
+            }
+        }
+
+        // 显示邮箱验证消息
+        function showEmailVerificationMessage(message) {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.style.display = 'block';
+            overlay.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">EMAIL VERIFICATION</div>
+                    <div style="margin-bottom: 20px; color: var(--white); line-height: 1.6;">
+                        <p>${message}</p>
+                        <p style="margin-top: 15px; color: var(--light-gray); font-size: 0.9rem;">
+                            Didn't receive the email? Please check your spam folder
+                        </p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="pixel-btn" style="width: 100%;">
+                        OK
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // 5秒后自动关闭
+            setTimeout(() => {
+                if (overlay.parentElement) {
+                    overlay.remove();
+                }
+            }, 8000);
+        }
+
+        // Logout function
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            updateUserDisplay();
+            hideHistory();
+            showSuccess('Logged out successfully!');
+        }
+
+        // Show/hide history
+        function showHistory() {
+            if (!currentUser) {
+                showError('Please login to view your history');
+                return;
+            }
+
+            const historyContainer = document.getElementById('history');
+            historyContainer.style.display = 'block';
+            loadUserHistory();
+            historyContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideHistory() {
+            document.getElementById('history').style.display = 'none';
+        }
+
+        // Load user history
+        async function loadUserHistory() {
+            const historyContent = document.getElementById('historyContent');
+            historyContent.innerHTML = '<div class="loading-text">Loading your recommendations...</div>';
+
+            try {
+                const recommendations = await apiRequest('/api/my-recommendations');
+
+                if (recommendations.length === 0) {
+                    historyContent.innerHTML = '<div style="text-align: center; color: var(--light-gray); padding: 40px;">No recommendations yet. Create your first one below!</div>';
+                    return;
+                }
+
+                historyContent.innerHTML = recommendations.map(rec => `
+                    <div class="history-item">
+                        <div class="history-item-header">
+                            <div class="history-book-title">${rec.book_title}</div>
+                            <div class="history-date">${new Date(rec.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <div class="history-details">
+                            <strong>For:</strong> ${rec.recipient_name} (${rec.relationship}) |
+                            <strong>Language:</strong> ${rec.language}
+                        </div>
+                        <div class="history-audio">
+                            <audio controls class="audio-player" style="width: 100%;">
+                                <source src="${API_BASE_URL}/${rec.audio_path}" type="audio/mpeg">
+                                Your browser does not support audio playback.
+                            </audio>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button onclick="copyToClipboard('${API_BASE_URL}/share/${rec.share_id}')" class="pixel-btn" style="font-size: 0.9rem;">
+                                Copy Share Link
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                historyContent.innerHTML = `<div style="text-align: center; color: #ff0000; padding: 40px;">Failed to load history: ${error.message}</div>`;
+            }
+        }
+
+        // Success message function
+        function showSuccess(message) {
+            console.log('Success:', message);
+            // You could add a success notification here
+        }
+
+        // Matrix Rain Effect
+        function initMatrix() {
+            const canvas = document.getElementById('matrix');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const chars = '01010101SHHELFBOOK';
+            const charSize = 14;
+            const columns = canvas.width / charSize;
+            const drops = [];
+
+            for (let i = 0; i < columns; i++) {
+                drops[i] = 1;
+            }
+
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = '#003300';
+                ctx.font = charSize + 'px monospace';
+
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * charSize, drops[i] * charSize);
+
+                    if (drops[i] * charSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+
+                    drops[i]++;
+                }
+            }
+
+            setInterval(draw, 50);
+        }
+
+        // Initialize matrix effect
+        initMatrix();
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            initMatrix();
+        });
+
+        // Language translations
+        const translations = {
+            en: {
+                'label-book': "BOOK TITLE",
+                'label-recipient': "RECOMMEND TO",
+                'label-relationship': "RELATIONSHIP",
+                'label-interests': "THEIR INTERESTS (OPTIONAL)",
+                'label-language': "LANGUAGE",
+                'label-tone': "RECOMMENDATION TONE",
+                'submit-btn': "GENERATE AUDIO RECOMMENDATION",
+                'loading-text1': "GENERATING PERSONALIZED BOOK TALK...",
+                'loading-text2': "PROCESSING NEURAL NETWORKS... 10-15 SECONDS",
+                'success-title': "BOOK TALK GENERATED SUCCESSFULLY!",
+                'share-title': "SHARE YOUR RECOMMENDATION",
+                'copy-btn': "COPY LINK",
+                'lang-switch': "中文",
+                placeholders: {
+                    book: "e.g., The Seven Husbands of Evelyn Hugo",
+                    recipient: "e.g., Sarah, my book-loving friend",
+                    interests: "e.g., loves romance novels, enjoys character-driven stories..."
+                },
+                relationships: ["FRIEND", "CLASSMATE", "COLLEAGUE", "FAMILY", "STUDENT"],
+                relationshipValues: ["friend", "classmate", "colleague", "family", "student"],
+                tones: ["FRIENDLY & ENTHUSIASTIC", "PROFESSIONAL & OBJECTIVE", "CASUAL & HUMOROUS", "WARM & CARING"],
+                toneValues: ["friendly and enthusiastic", "professional and objective", "casual and humorous", "warm and caring"]
+            },
+            zh: {
+                'label-book': "书籍名称",
+                'label-recipient': "推荐给谁",
+                'label-relationship': "你们的关系",
+                'label-interests': "TA的兴趣爱好（可选）",
+                'label-language': "语言",
+                'label-tone': "推荐语调",
+                'label-dialect': "语音方言",
+                'submit-btn': "生成语音推荐",
+                'loading-text1': "正在生成个性化书籍推荐...",
+                'loading-text2': "神经网络处理中... 10-15秒",
+                'success-title': "书籍推荐生成成功！",
+                'share-title': "分享你的推荐",
+                'copy-btn': "复制链接",
+                'lang-switch': "ENGLISH",
+                placeholders: {
+                    book: "例如：《活着》",
+                    recipient: "例如：我的朋友小明",
+                    interests: "例如：喜欢文学小说，爱看历史故事..."
+                },
+                relationships: ["朋友", "同学", "同事", "家人", "学生"],
+                relationshipValues: ["朋友", "同学", "同事", "家人", "学生"],
+                tones: ["友好热情", "专业客观", "轻松幽默", "温暖亲切"],
+                toneValues: ["友好热情", "专业客观", "轻松幽默", "温暖亲切"]
+            }
+        };
+
+        let currentLang = 'en';
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
+            updateLanguage();
+        }
+
+        function updateLanguage() {
+            const t = translations[currentLang];
+
+            // Update labels and text
+            Object.keys(t).forEach(key => {
+                const element = document.getElementById(key);
+                if (element && typeof t[key] === 'string') {
+                    element.textContent = t[key];
+                }
+            });
+
+            // Update placeholders
+            if (t.placeholders) {
+                document.getElementById('book_title').placeholder = t.placeholders.book;
+                document.getElementById('recipient_name').placeholder = t.placeholders.recipient;
+                document.getElementById('recipient_interests').placeholder = t.placeholders.interests;
+            }
+
+            // Update dropdown options
+            if (t.relationships) {
+                const relationshipSelect = document.getElementById('relationship');
+                relationshipSelect.innerHTML = '';
+                t.relationships.forEach((rel, i) => {
+                    const option = document.createElement('option');
+                    option.value = t.relationshipValues[i];
+                    option.textContent = rel;
+                    relationshipSelect.appendChild(option);
+                });
+            }
+
+            if (t.tones) {
+                const toneSelect = document.getElementById('tone');
+                toneSelect.innerHTML = '';
+                t.tones.forEach((tone, i) => {
+                    const option = document.createElement('option');
+                    option.value = t.toneValues[i];
+                    option.textContent = tone;
+                    toneSelect.appendChild(option);
+                });
+            }
+
+            // Control dialect selection visibility based on language select value
+            const dialectGroup = document.getElementById('dialect-group');
+            const languageSelect = document.getElementById('language');
+            if (languageSelect.value === '中文') {
+                dialectGroup.style.display = 'block';
+            } else {
+                dialectGroup.style.display = 'none';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Form event listeners
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            await login(username, password);
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            // 客户端验证
+            if (username.length < 3 || username.length > 20) {
+                showError('Username must be between 3-20 characters');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters');
+                return;
+            }
+
+            // 简单的邮箱格式验证
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+
+            // Disable button and show loading state
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'REGISTERING...';
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+
+            try {
+                await register(username, email, password);
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            }
+        });
+
+        // Real-time email validation
+        let emailValidationTimeout;
+        document.getElementById('registerEmail').addEventListener('input', function(e) {
+            const email = e.target.value;
+            const validationDiv = document.getElementById('emailValidation');
+
+            // Clear previous timeout
+            if (emailValidationTimeout) {
+                clearTimeout(emailValidationTimeout);
+            }
+
+            // Hide validation if email is empty
+            if (!email.trim()) {
+                validationDiv.style.display = 'none';
+                return;
+            }
+
+            // Basic email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                validationDiv.style.display = 'block';
+                validationDiv.className = 'email-validation-message error';
+                validationDiv.textContent = 'Invalid email format';
+                return;
+            }
+
+            // Show checking message
+            validationDiv.style.display = 'block';
+            validationDiv.className = 'email-validation-message checking';
+            validationDiv.textContent = 'Checking availability...';
+
+            // Debounced API call
+            emailValidationTimeout = setTimeout(async () => {
+                const result = await checkEmailAvailability(email);
+                if (result) {
+                    if (result.available) {
+                        validationDiv.className = 'email-validation-message success';
+                        validationDiv.textContent = '✓ Email available';
+                    } else {
+                        validationDiv.className = 'email-validation-message error';
+                        validationDiv.textContent = '✗ ' + result.message;
+                    }
+                } else {
+                    validationDiv.style.display = 'none';
+                }
+            }, 500); // 500ms delay to avoid too many API calls
+        });
+
+        // Modified recommendation form submission to include auth headers
+        document.getElementById('recommendationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submit-btn');
+            const loadingDiv = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('errorMessage');
+
+            // Hide previous results/errors
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            submitBtn.disabled = true;
+
+            // Collect form data
+            const formData = {
+                book_title: document.getElementById('book_title').value,
+                recipient_name: document.getElementById('recipient_name').value,
+                relationship: document.getElementById('relationship').value,
+                recipient_interests: document.getElementById('recipient_interests').value,
+                tone: document.getElementById('tone').value,
+                language: document.getElementById('language').value,
+                dialect: document.getElementById('dialect').value
+            };
+
+            try {
+                console.log('Sending request to:', `${API_BASE_URL}/api/generate-recommendation`);
+                console.log('Form data:', formData);
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                };
+
+                // Add auth header if user is logged in and has valid token
+                if (authToken && authToken.trim() !== '') {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/generate-recommendation`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(formData)
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('Response data:', result);
+
+                if (result.success) {
+                    // Show result
+                    loadingDiv.style.display = 'none';
+                    resultDiv.style.display = 'block';
+
+                    // Set audio player
+                    const audioPlayer = document.getElementById('audioPlayer');
+                    // Check if audio_path is already a full URL (Cloudinary)
+                    const audioUrl = result.audio_path.startsWith('http')
+                        ? result.audio_path
+                        : `${API_BASE_URL}/${result.audio_path}`;
+                    audioPlayer.src = audioUrl;
+
+                    // Set share URL - use backend sharing for reliable access
+                    const shareUrl = `${API_BASE_URL}/share/${result.share_id}`;
+                    document.getElementById('shareUrl').value = shareUrl;
+
+                    // Scroll to result
+                    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    throw new Error('SYSTEM ERROR: GENERATION FAILED');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loadingDiv.style.display = 'none';
+                showError(`SYSTEM ERROR: ${error.message}`);
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        function copyToClipboard(customUrl = null) {
+            let urlToCopy;
+            if (customUrl) {
+                urlToCopy = customUrl;
+            } else {
+                const shareUrlInput = document.getElementById('shareUrl');
+                urlToCopy = shareUrlInput.value;
+            }
+
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(urlToCopy).then(() => {
+                    showCopySuccess();
+                }).catch(err => {
+                    fallbackCopy();
+                });
+            } else {
+                fallbackCopy();
+            }
+
+            function fallbackCopy() {
+                if (!customUrl) {
+                    const shareUrlInput = document.getElementById('shareUrl');
+                    shareUrlInput.select();
+                    shareUrlInput.setSelectionRange(0, 99999); // For mobile
+                }
+                try {
+                    // Create temporary input for custom URLs
+                    if (customUrl) {
+                        const tempInput = document.createElement('input');
+                        tempInput.value = urlToCopy;
+                        document.body.appendChild(tempInput);
+                        tempInput.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempInput);
+                    } else {
+                        document.execCommand('copy');
+                    }
+                    showCopySuccess();
+                } catch (err) {
+                    console.error('Copy failed:', err);
+                }
+            }
+
+            function showCopySuccess() {
+                const copyBtn = document.getElementById('copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = currentLang === 'en' ? '✓ COPIED!' : '✓ 已复制!';
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }
+        }
+
+        // Add language selector event listener
+        document.addEventListener('DOMContentLoaded', function() {
+            const languageSelect = document.getElementById('language');
+            languageSelect.addEventListener('change', function() {
+                const dialectGroup = document.getElementById('dialect-group');
+                if (this.value === '中文') {
+                    dialectGroup.style.display = 'block';
+                } else {
+                    dialectGroup.style.display = 'none';
+                }
+            });
+        });
+
+        // Initialize
+        window.onload = function() {
+            updateLanguage();
+            checkAuth(); // Check for saved authentication
+            console.log('Y2K PIXEL MODE ACTIVATED - PLAYGROUND READY');
+            console.log('API Base URL:', API_BASE_URL);
+
+            // Test API connection
+            fetch(`${API_BASE_URL}/api/health`)
+                .then(response => response.json())
+                .then(data => console.log('Backend status:', data))
+                .catch(error => console.error('Backend connection failed:', error));
+        };
+
+        // Modal click outside to close
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

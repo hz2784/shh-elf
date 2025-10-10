@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Discovery - SHH-ELF</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-black: #000000;
+            --bg-dark: #111111;
+            --primary-green: #00ff00;
+            --dark-green: #008000;
+            --light-gray: #333333;
+            --white: #ffffff;
+            --gray: #333333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'VT323', 'Courier New', monospace;
+            background: var(--bg-black);
+            color: var(--primary-green);
+            line-height: 1.4;
+            font-size: 18px;
+            overflow-x: hidden;
+            cursor: crosshair;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Terminal */
+        .terminal-header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--bg-black);
+            border-bottom: 2px solid var(--primary-green);
+            padding: 8px 16px;
+            z-index: 100;
+            font-size: 14px;
+        }
+
+        .terminal-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            color: var(--primary-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            padding: 4px 12px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-top: 40px;
+            padding: 20px;
+        }
+
+        .discovery-container {
+            margin: 20px;
+            border: 3px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 30px;
+        }
+
+        .discovery-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .discovery-title {
+            font-size: 2.5rem;
+            color: var(--primary-green);
+            margin-bottom: 20px;
+        }
+
+        .discovery-subtitle {
+            font-size: 1.4rem;
+            color: var(--white);
+            margin-bottom: 10px;
+        }
+
+        .discovery-description {
+            color: var(--light-gray);
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* Discovery Form */
+        .discovery-form {
+            max-width: 600px;
+            margin: 0 auto 40px;
+            background: var(--bg-dark);
+            border: 2px solid var(--primary-green);
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--primary-green);
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--light-gray);
+            color: var(--white);
+            padding: 12px;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-green);
+        }
+
+        .form-select {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--light-gray);
+            color: var(--white);
+            padding: 12px;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+        }
+
+        .discover-btn {
+            background: var(--bg-black);
+            color: var(--primary-green);
+            border: 3px solid var(--primary-green);
+            padding: 15px 30px;
+            font-family: 'VT323', monospace;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .discover-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .discover-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Results Section */
+        .discovery-results {
+            display: none;
+            background: var(--bg-dark);
+            border: 2px solid var(--primary-green);
+            padding: 30px;
+        }
+
+        .result-header {
+            border-bottom: 2px solid var(--primary-green);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .book-title {
+            font-size: 2rem;
+            color: var(--primary-green);
+            margin-bottom: 10px;
+        }
+
+        .book-author {
+            font-size: 1.4rem;
+            color: var(--white);
+            margin-bottom: 20px;
+        }
+
+        .book-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .meta-tag {
+            background: var(--dark-green);
+            color: var(--bg-black);
+            padding: 5px 10px;
+            font-size: 1rem;
+            border-radius: 3px;
+        }
+
+        .content-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            color: var(--primary-green);
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .first-paragraph {
+            background: var(--bg-black);
+            border: 1px solid var(--light-gray);
+            padding: 20px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-style: italic;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .audio-btn {
+            background: transparent;
+            color: var(--primary-green);
+            border: 2px solid var(--primary-green);
+            padding: 10px 20px;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .audio-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+
+        .formal-models {
+            margin-top: 20px;
+        }
+
+        .formal-model-tag {
+            display: inline-block;
+            background: var(--dark-green);
+            color: var(--bg-black);
+            padding: 8px 15px;
+            margin: 5px 5px 5px 0;
+            font-size: 1rem;
+            border-radius: 3px;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--primary-green);
+            font-size: 1.3rem;
+        }
+
+        .error-message {
+            display: none;
+            background: #ff4444;
+            color: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .discovery-title {
+                font-size: 2.5rem;
+            }
+
+            .book-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .audio-controls {
+                flex-direction: column;
+            }
+        }
+
+        /* Language Switcher */
+        .lang-switch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+            z-index: 1000;
+        }
+
+        .lang-switch:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-header">
+        <div class="terminal-bar">
+            <span class="terminal-title">SHH-ELF.EXE - BOOK DISCOVERY</span>
+            <div class="terminal-controls">
+                <div class="nav-controls">
+                    <a href="index.html" class="nav-btn">HOME</a>
+                    <a href="gallery.html" class="nav-btn">GALLERY</a>
+                    <a href="playground.html" class="nav-btn">PLAYGROUND</a>
+                    <a href="discovery.html" class="nav-btn">DISCOVERY</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="discovery-container">
+            <div class="discovery-header">
+                <h1 class="discovery-title">BOOK TALK DISCOVERY</h1>
+                <div class="discovery-subtitle">Analyze Any Book for Language Learning</div>
+                <div class="discovery-description">
+                    Enter any book title and author to get instant analysis:<br>
+                    First paragraph preview, audio narration, difficulty assessment, and formal models.
+                </div>
+            </div>
+
+        <!-- Discovery Form -->
+        <div class="discovery-form">
+            <div class="form-group">
+                <label class="form-label" for="bookTitle">Book Title</label>
+                <input type="text" id="bookTitle" class="form-input" placeholder="e.g., Pride and Prejudice" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="bookAuthor">Author</label>
+                <input type="text" id="bookAuthor" class="form-input" placeholder="e.g., Jane Austen" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="userLevel">Your English Level</label>
+                <select id="userLevel" class="form-select">
+                    <option value="A2">A2 - Elementary</option>
+                    <option value="B1">B1 - Intermediate</option>
+                    <option value="B2" selected>B2 - Upper Intermediate</option>
+                    <option value="C1">C1 - Advanced</option>
+                    <option value="C2">C2 - Proficient</option>
+                </select>
+            </div>
+
+            <button id="discoverBtn" class="discover-btn" onclick="discoverBook()">
+                Discover This Book
+            </button>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="loading-spinner">
+            Analyzing book... This may take a moment.
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message"></div>
+
+        <!-- Discovery Results -->
+        <div id="discoveryResults" class="discovery-results">
+            <div class="result-header">
+                <div id="resultBookTitle" class="book-title"></div>
+                <div id="resultBookAuthor" class="book-author"></div>
+                <div class="book-meta">
+                    <span id="resultCefrLevel" class="meta-tag"></span>
+                    <span id="resultVocabSize" class="meta-tag"></span>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <div class="section-title">First Paragraph</div>
+                <div id="resultFirstParagraph" class="first-paragraph"></div>
+                <div class="audio-controls">
+                    <button id="sampleAudioBtn" class="audio-btn" onclick="playAudio('sample')">
+                        Listen to Sample
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <div class="section-title">Book Talk</div>
+                <div id="resultBookTalk" class="first-paragraph"></div>
+                <div class="audio-controls">
+                    <button id="talkAudioBtn" class="audio-btn" onclick="playAudio('talk')">
+                        Listen to Book Talk
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <div class="section-title">Formal Models</div>
+                <div id="resultFormalModels" class="formal-models"></div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://shh-elf.onrender.com';
+        let currentAnalysis = null;
+        let currentAudio = null;
+        let currentButton = null;
+
+        async function discoverBook() {
+            const bookTitle = document.getElementById('bookTitle').value.trim();
+            const bookAuthor = document.getElementById('bookAuthor').value.trim();
+            const userLevel = document.getElementById('userLevel').value;
+
+            if (!bookTitle || !bookAuthor) {
+                showError('Please enter both book title and author.');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('discoveryResults').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('discoverBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/discover-book`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        book_title: bookTitle,
+                        author: bookAuthor,
+                        user_level: userLevel
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Analysis failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentAnalysis = result;
+                displayResults(result);
+
+            } catch (error) {
+                console.error('Discovery error:', error);
+                showError('Failed to analyze book. Please try again.');
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('discoverBtn').disabled = false;
+            }
+        }
+
+        function displayResults(analysis) {
+            document.getElementById('resultBookTitle').textContent = analysis.book_title;
+            document.getElementById('resultBookAuthor').textContent = `by ${analysis.author}`;
+            document.getElementById('resultCefrLevel').textContent = `CEFR: ${analysis.cefr_level}`;
+            document.getElementById('resultVocabSize').textContent = `Vocabulary: ${analysis.estimated_vocabulary} words`;
+            document.getElementById('resultFirstParagraph').textContent = analysis.first_paragraph;
+            document.getElementById('resultBookTalk').textContent = analysis.book_talk_text;
+
+            // Display formal models
+            const modelsContainer = document.getElementById('resultFormalModels');
+            modelsContainer.innerHTML = analysis.formal_models
+                .map(model => `<span class="formal-model-tag">${model}</span>`)
+                .join('');
+
+            document.getElementById('discoveryResults').style.display = 'block';
+        }
+
+        function playAudio(type) {
+            if (!currentAnalysis) return;
+
+            const audioUrl = type === 'sample' ? currentAnalysis.sample_audio_url : currentAnalysis.book_talk_audio_url;
+            const button = type === 'sample' ? document.getElementById('sampleAudioBtn') : document.getElementById('talkAudioBtn');
+
+            // Check if clicking the same button that's currently playing
+            if (currentButton === button && currentAudio) {
+                if (currentAudio.paused) {
+                    // Resume playback
+                    currentAudio.play().catch(error => {
+                        console.error('Audio resume failed:', error);
+                        resetAudioButton(button, type);
+                    });
+                    button.textContent = type === 'sample' ? 'Playing Sample...' : 'Playing Book Talk...';
+                } else {
+                    // Pause playback
+                    currentAudio.pause();
+                    button.textContent = type === 'sample' ? 'Resume Sample' : 'Resume Book Talk';
+                }
+                return;
+            }
+
+            // Stop current audio if playing different button
+            if (currentAudio) {
+                currentAudio.pause();
+                if (currentButton) {
+                    const prevType = currentButton.id === 'sampleAudioBtn' ? 'sample' : 'talk';
+                    resetAudioButton(currentButton, prevType);
+                }
+            }
+
+            if (audioUrl.startsWith('http')) {
+                currentAudio = new Audio(audioUrl);
+                currentButton = button;
+                button.textContent = type === 'sample' ? 'Playing Sample...' : 'Playing Book Talk...';
+
+                currentAudio.play().catch(error => {
+                    console.error('Audio playback failed:', error);
+                    button.textContent = 'Audio Error';
+                    setTimeout(() => {
+                        resetAudioButton(button, type);
+                    }, 2000);
+                });
+
+                currentAudio.onended = () => {
+                    resetAudioButton(button, type);
+                    currentAudio = null;
+                    currentButton = null;
+                };
+            } else {
+                showError('Audio not available yet. Please try again in a moment.');
+            }
+        }
+
+        function resetAudioButton(button, type) {
+            button.textContent = type === 'sample' ? 'Listen to Sample' : 'Listen to Book Talk';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Handle Enter key in form inputs
+        document.getElementById('bookTitle').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('bookAuthor').focus();
+            }
+        });
+
+        document.getElementById('bookAuthor').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                discoverBook();
+            }
+        });
+
+        // Language switching functionality
+        const translations = {
+            en: {
+                'discovery-title': 'BOOK TALK DISCOVERY',
+                'discovery-subtitle': 'Analyze Any Book for Language Learning',
+                'discovery-description': 'Enter any book title and author to get instant analysis:<br>First paragraph preview, audio narration, difficulty assessment, and formal models.',
+                'label-title': 'Book Title',
+                'label-author': 'Author',
+                'label-level': 'Your English Level',
+                'level-a2': 'A2 - Elementary',
+                'level-b1': 'B1 - Intermediate',
+                'level-b2': 'B2 - Upper Intermediate',
+                'level-c1': 'C1 - Advanced',
+                'level-c2': 'C2 - Proficient',
+                'discover-btn': 'Discover This Book',
+                'loading-text': 'Analyzing book... This may take a moment.',
+                'first-paragraph': 'First Paragraph',
+                'book-talk': 'Book Talk',
+                'formal-models': 'Formal Models',
+                'listen-sample': 'Listen to Sample',
+                'listen-book-talk': 'Listen to Book Talk',
+                'playing-sample': 'Playing Sample...',
+                'playing-book-talk': 'Playing Book Talk...',
+                'resume-sample': 'Resume Sample',
+                'resume-book-talk': 'Resume Book Talk',
+                'audio-error': 'Audio Error',
+                'error-both-fields': 'Please enter both book title and author.',
+                'error-analysis-failed': 'Failed to analyze book. Please try again.',
+                'error-audio-unavailable': 'Audio not available yet. Please try again in a moment.',
+                'placeholder-title': 'e.g., Pride and Prejudice',
+                'placeholder-author': 'e.g., Jane Austen',
+                'cefr-label': 'CEFR:',
+                'vocab-label': 'Vocabulary:',
+                'vocab-suffix': ' words',
+                'lang-btn': '中文'
+            },
+            zh: {
+                'discovery-title': '书籍对话发现',
+                'discovery-subtitle': '分析任何书籍以进行语言学习',
+                'discovery-description': '输入任何书名和作者即可获得即时分析：<br>首段预览、音频旁白、难度评估和正式模型。',
+                'label-title': '书名',
+                'label-author': '作者',
+                'label-level': '您的英语水平',
+                'level-a2': 'A2 - 初级',
+                'level-b1': 'B1 - 中级',
+                'level-b2': 'B2 - 中高级',
+                'level-c1': 'C1 - 高级',
+                'level-c2': 'C2 - 精通',
+                'discover-btn': '发现这本书',
+                'loading-text': '正在分析书籍... 这可能需要一些时间。',
+                'first-paragraph': '首段',
+                'book-talk': '书籍对话',
+                'formal-models': '正式模型',
+                'listen-sample': '收听示例',
+                'listen-book-talk': '收听书籍对话',
+                'playing-sample': '播放示例中...',
+                'playing-book-talk': '播放书籍对话中...',
+                'resume-sample': '继续示例',
+                'resume-book-talk': '继续书籍对话',
+                'audio-error': '音频错误',
+                'error-both-fields': '请输入书名和作者。',
+                'error-analysis-failed': '分析书籍失败。请再试一次。',
+                'error-audio-unavailable': '音频暂不可用。请稍后再试。',
+                'placeholder-title': '例如：傲慢与偏见',
+                'placeholder-author': '例如：简·奥斯汀',
+                'cefr-label': 'CEFR：',
+                'vocab-label': '词汇量：',
+                'vocab-suffix': ' 词',
+                'lang-btn': 'EN'
+            }
+        };
+
+        let currentLanguage = localStorage.getItem('language') || 'en';
+
+        function updateLanguage() {
+            const lang = translations[currentLanguage];
+
+            // Update static elements
+            document.querySelector('.discovery-title').textContent = lang['discovery-title'];
+            document.querySelector('.discovery-subtitle').textContent = lang['discovery-subtitle'];
+            document.querySelector('.discovery-description').innerHTML = lang['discovery-description'];
+
+            // Update form labels
+            document.querySelector('label[for="bookTitle"]').textContent = lang['label-title'];
+            document.querySelector('label[for="bookAuthor"]').textContent = lang['label-author'];
+            document.querySelector('label[for="userLevel"]').textContent = lang['label-level'];
+
+            // Update placeholders
+            document.getElementById('bookTitle').placeholder = lang['placeholder-title'];
+            document.getElementById('bookAuthor').placeholder = lang['placeholder-author'];
+
+            // Update select options
+            const selectOptions = document.querySelectorAll('#userLevel option');
+            if (selectOptions.length >= 5) {
+                selectOptions[0].textContent = lang['level-a2'];
+                selectOptions[1].textContent = lang['level-b1'];
+                selectOptions[2].textContent = lang['level-b2'];
+                selectOptions[3].textContent = lang['level-c1'];
+                selectOptions[4].textContent = lang['level-c2'];
+            }
+
+            // Update button
+            document.getElementById('discoverBtn').textContent = lang['discover-btn'];
+
+            // Update loading text
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            if (loadingSpinner) {
+                loadingSpinner.textContent = lang['loading-text'];
+            }
+
+            // Update section titles
+            const sectionTitles = document.querySelectorAll('.section-title');
+            if (sectionTitles.length >= 3) {
+                sectionTitles[0].textContent = lang['first-paragraph'];
+                sectionTitles[1].textContent = lang['book-talk'];
+                sectionTitles[2].textContent = lang['formal-models'];
+            }
+
+            // Update audio buttons
+            updateAudioButtons();
+
+            // Update language switcher button
+            const langBtn = document.querySelector('.lang-switch');
+            if (langBtn) {
+                langBtn.textContent = lang['lang-btn'];
+            }
+        }
+
+        function updateAudioButtons() {
+            const lang = translations[currentLanguage];
+            const sampleBtn = document.getElementById('sampleAudioBtn');
+            const talkBtn = document.getElementById('talkAudioBtn');
+
+            if (sampleBtn) {
+                const text = sampleBtn.textContent;
+                if (text.includes('Playing') || text.includes('播放')) {
+                    if (text.includes('Sample') || text.includes('示例')) {
+                        sampleBtn.textContent = lang['playing-sample'];
+                    }
+                } else if (text.includes('Resume') || text.includes('继续')) {
+                    if (text.includes('Sample') || text.includes('示例')) {
+                        sampleBtn.textContent = lang['resume-sample'];
+                    }
+                } else if (text.includes('Error') || text.includes('错误')) {
+                    sampleBtn.textContent = lang['audio-error'];
+                } else {
+                    sampleBtn.textContent = lang['listen-sample'];
+                }
+            }
+
+            if (talkBtn) {
+                const text = talkBtn.textContent;
+                if (text.includes('Playing') || text.includes('播放')) {
+                    if (text.includes('Talk') || text.includes('对话')) {
+                        talkBtn.textContent = lang['playing-book-talk'];
+                    }
+                } else if (text.includes('Resume') || text.includes('继续')) {
+                    if (text.includes('Talk') || text.includes('对话')) {
+                        talkBtn.textContent = lang['resume-book-talk'];
+                    }
+                } else if (text.includes('Error') || text.includes('错误')) {
+                    talkBtn.textContent = lang['audio-error'];
+                } else {
+                    talkBtn.textContent = lang['listen-book-talk'];
+                }
+            }
+        }
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'zh' : 'en';
+            localStorage.setItem('language', currentLanguage);
+            updateLanguage();
+        }
+
+        // Update discoverBook function to use translations
+        async function discoverBook() {
+            const lang = translations[currentLanguage];
+            const bookTitle = document.getElementById('bookTitle').value.trim();
+            const bookAuthor = document.getElementById('bookAuthor').value.trim();
+            const userLevel = document.getElementById('userLevel').value;
+
+            if (!bookTitle || !bookAuthor) {
+                showError(lang['error-both-fields']);
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('discoveryResults').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('discoverBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/discover-book`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        book_title: bookTitle,
+                        author: bookAuthor,
+                        user_level: userLevel
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Analysis failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentAnalysis = result;
+                displayResults(result);
+
+            } catch (error) {
+                console.error('Discovery error:', error);
+                showError(lang['error-analysis-failed']);
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('discoverBtn').disabled = false;
+            }
+        }
+
+        function displayResults(analysis) {
+            const lang = translations[currentLanguage];
+            document.getElementById('resultBookTitle').textContent = analysis.book_title;
+            document.getElementById('resultBookAuthor').textContent = `by ${analysis.author}`;
+            document.getElementById('resultCefrLevel').textContent = `${lang['cefr-label']} ${analysis.cefr_level}`;
+            document.getElementById('resultVocabSize').textContent = `${lang['vocab-label']} ${analysis.estimated_vocabulary}${lang['vocab-suffix']}`;
+            document.getElementById('resultFirstParagraph').textContent = analysis.first_paragraph;
+            document.getElementById('resultBookTalk').textContent = analysis.book_talk_text;
+
+            // Display formal models
+            const modelsContainer = document.getElementById('resultFormalModels');
+            modelsContainer.innerHTML = analysis.formal_models
+                .map(model => `<span class="formal-model-tag">${model}</span>`)
+                .join('');
+
+            document.getElementById('discoveryResults').style.display = 'block';
+        }
+
+        function playAudio(type) {
+            const lang = translations[currentLanguage];
+            if (!currentAnalysis) return;
+
+            const audioUrl = type === 'sample' ? currentAnalysis.sample_audio_url : currentAnalysis.book_talk_audio_url;
+            const button = type === 'sample' ? document.getElementById('sampleAudioBtn') : document.getElementById('talkAudioBtn');
+
+            // Check if clicking the same button that's currently playing
+            if (currentButton === button && currentAudio) {
+                if (currentAudio.paused) {
+                    // Resume playback
+                    currentAudio.play().catch(error => {
+                        console.error('Audio resume failed:', error);
+                        resetAudioButton(button, type);
+                    });
+                    button.textContent = type === 'sample' ? lang['playing-sample'] : lang['playing-book-talk'];
+                } else {
+                    // Pause playback
+                    currentAudio.pause();
+                    button.textContent = type === 'sample' ? lang['resume-sample'] : lang['resume-book-talk'];
+                }
+                return;
+            }
+
+            // Stop current audio if playing different button
+            if (currentAudio) {
+                currentAudio.pause();
+                if (currentButton) {
+                    const prevType = currentButton.id === 'sampleAudioBtn' ? 'sample' : 'talk';
+                    resetAudioButton(currentButton, prevType);
+                }
+            }
+
+            if (audioUrl.startsWith('http')) {
+                currentAudio = new Audio(audioUrl);
+                currentButton = button;
+                button.textContent = type === 'sample' ? lang['playing-sample'] : lang['playing-book-talk'];
+
+                currentAudio.play().catch(error => {
+                    console.error('Audio playback failed:', error);
+                    button.textContent = lang['audio-error'];
+                    setTimeout(() => {
+                        resetAudioButton(button, type);
+                    }, 2000);
+                });
+
+                currentAudio.onended = () => {
+                    resetAudioButton(button, type);
+                    currentAudio = null;
+                    currentButton = null;
+                };
+            } else {
+                showError(lang['error-audio-unavailable']);
+            }
+        }
+
+        function resetAudioButton(button, type) {
+            const lang = translations[currentLanguage];
+            button.textContent = type === 'sample' ? lang['listen-sample'] : lang['listen-book-talk'];
+        }
+
+        // Initialize language on load
+        window.addEventListener('DOMContentLoaded', function() {
+            updateLanguage();
+        });
+    </script>
+
+    <!-- Language Switcher -->
+    <button class="lang-switch" onclick="toggleLanguage()">中文</button>
+</body>
+</html>

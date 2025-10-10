@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHH-ELF :: Shared Book Recommendation</title>
+    <meta name="description" content="Someone has shared a personalized book recommendation with you through Shh-elf!">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-green: #00ff00;
+            --dark-green: #008000;
+            --bg-black: #000000;
+            --bg-dark: #111111;
+            --white: #ffffff;
+            --gray: #333333;
+            --light-gray: #666666;
+        }
+
+        body {
+            font-family: 'VT323', 'Courier New', monospace;
+            background: var(--bg-black);
+            color: var(--primary-green);
+            line-height: 1.4;
+            font-size: 18px;
+            cursor: crosshair;
+            min-height: 100vh;
+        }
+
+        /* Scanlines Effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                transparent 50%,
+                rgba(0, 255, 0, 0.03) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* CRT Flicker */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            98% { opacity: 0.98; }
+            99% { opacity: 1; }
+        }
+
+        body {
+            animation: flicker 3s infinite;
+        }
+
+        /* Terminal Header */
+        .terminal-header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--bg-black);
+            border-bottom: 2px solid var(--primary-green);
+            padding: 8px 16px;
+            z-index: 100;
+            font-size: 14px;
+        }
+
+        .terminal-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            color: var(--primary-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--primary-green);
+            background: transparent;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .control-btn:hover {
+            background: var(--primary-green);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 60px;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 60px);
+        }
+
+        .share-container {
+            max-width: 600px;
+            width: 100%;
+            border: 3px solid var(--primary-green);
+            background: var(--bg-dark);
+            padding: 40px;
+            text-align: center;
+        }
+
+        .share-header {
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            color: var(--primary-green);
+            text-shadow: 2px 2px 0px var(--dark-green);
+        }
+
+        .share-message {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: var(--white);
+            line-height: 1.6;
+        }
+
+        .audio-container {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid var(--light-gray);
+            background: var(--bg-black);
+        }
+
+        .audio-player {
+            width: 100%;
+            background: var(--bg-black);
+            border: 2px solid var(--primary-green);
+            margin-top: 10px;
+        }
+
+        .error-container {
+            text-align: center;
+            color: #ff0000;
+            font-size: 1.5rem;
+            margin-top: 50px;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--primary-green);
+            font-size: 1.2rem;
+        }
+
+        .pixel-btn {
+            background: var(--bg-black);
+            color: var(--primary-green);
+            border: 3px solid var(--primary-green);
+            padding: 12px 24px;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            box-shadow: 4px 4px 0px var(--dark-green);
+        }
+
+        .pixel-btn:hover {
+            background: var(--primary-green);
+            color: var(--bg-black);
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--dark-green);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .share-container {
+                margin: 20px;
+                padding: 20px;
+            }
+
+            .share-header {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Terminal Header -->
+    <div class="terminal-header">
+        <div class="terminal-bar">
+            <span class="terminal-title">SHH-ELF.EXE - SHARED RECOMMENDATION</span>
+            <div class="terminal-controls">
+                <div class="control-btn"></div>
+                <div class="control-btn"></div>
+                <div class="control-btn"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            LOADING SHARED RECOMMENDATION...
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="error-container" style="display: none;">
+            <div>❌ RECOMMENDATION NOT FOUND</div>
+            <div style="font-size: 1rem; margin-top: 20px; color: var(--light-gray);">
+                This recommendation may have expired or the link is invalid.
+            </div>
+            <a href="https://hz2784.github.io/shh-elf/" class="pixel-btn">Return to Home</a>
+        </div>
+
+        <!-- Success State -->
+        <div id="success" class="share-container" style="display: none;">
+            <div class="share-header">📚 Book Recommendation</div>
+            <div class="share-message">
+                Someone has shared a personalized book recommendation with you through SHH-ELF!
+            </div>
+
+            <div class="audio-container">
+                <div style="color: var(--primary-green); margin-bottom: 10px; text-transform: uppercase;">
+                    🎧 Audio Recommendation:
+                </div>
+                <audio controls class="audio-player" id="audioPlayer">
+                    Your browser does not support audio playback.
+                </audio>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <a href="https://hz2784.github.io/shh-elf/" class="pixel-btn">Create Your Own Recommendation</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'https://shh-elf.onrender.com';
+
+        // Get share ID from URL parameters
+        function getShareId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        // Load shared recommendation
+        async function loadSharedRecommendation() {
+            const shareId = getShareId();
+
+            if (!shareId) {
+                showError();
+                return;
+            }
+
+            try {
+                console.log('Loading shared recommendation:', shareId);
+
+                const response = await fetch(`${API_BASE_URL}/api/share/${shareId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Share data:', result);
+
+                if (result.success) {
+                    // Hide loading, show success
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('success').style.display = 'block';
+
+                    // Set audio source
+                    const audioPlayer = document.getElementById('audioPlayer');
+                    audioPlayer.src = `${API_BASE_URL}${result.audio_url}`;
+                } else {
+                    throw new Error('Share not found');
+                }
+            } catch (error) {
+                console.error('Error loading shared recommendation:', error);
+                showError();
+            }
+        }
+
+        function showError() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            loadSharedRecommendation();
+        };
+    </script>
+</body>
+</html>
